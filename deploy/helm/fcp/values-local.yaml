@@ -1,0 +1,32 @@
+# Overrides for the local kind environment (deploy/local).
+# Bundled Temporal, NodePort control-api on 30080, images from the local registry.
+
+image:
+  pullPolicy: Always
+  controlApi:
+    repository: localhost:5001/fcp-control-api
+    tag: latest
+  worker:
+    repository: localhost:5001/fcp-k8s-worker
+    tag: latest
+
+controlApi:
+  replicaCount: 1
+  service:
+    type: NodePort
+    port: 8080
+    nodePort: 30080
+
+worker:
+  replicaCount: 1
+
+temporal:
+  mode: bundled
+  namespace: default
+  bundled:
+    uiEnabled: true
+
+flink:
+  watchNamespaces:
+    - streaming
+  leaseNamespace: fcp-system

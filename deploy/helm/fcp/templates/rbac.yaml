@@ -1,0 +1,68 @@
+{{- if .Values.rbac.create -}}
+{{- $fullname := include "fcp.fullname" . -}}
+{{- $saName := include "fcp.serviceAccountName" . -}}
+{{- $saNamespace := .Release.Namespace -}}
+{{- $rules := list
+  (dict "apiGroups" (list "flink.apache.org") "resources" (list "flinkdeployments" "flinkdeployments/status" "flinkstatesnapshots" "flinkstatesnapshots/status") "verbs" (list "get" "list" "watch" "create" "update" "patch" "delete"))
+  (dict "apiGroups" (list "") "resources" (list "configmaps") "verbs" (list "get" "list" "watch" "create" "update" "patch" "delete"))
+  (dict "apiGroups" (list "") "resources" (list "events") "verbs" (list "create" "patch"))
+  (dict "apiGroups" (list "") "resources" (list "pods") "verbs" (list "get" "list" "watch"))
+-}}
+{{- if .Values.rbac.clusterScope }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "fcp.labels" . | nindent 4 }}
+rules:
+  {{- toYaml $rules | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "fcp.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $fullname }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $saName }}
+    namespace: {{ $saNamespace }}
+{{- else }}
+{{- $namespaces := .Values.flink.watchNamespaces | default list -}}
+{{- $leaseNs := include "fcp.leaseNamespace" . -}}
+{{- $namespaces = append $namespaces $leaseNs | uniq -}}
+{{- range $ns := $namespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $fullname }}
+  namespace: {{ $ns }}
+  labels:
+    {{- include "fcp.labels" $ | nindent 4 }}
+rules:
+  {{- toYaml $rules | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullname }}
+  namespace: {{ $ns }}
+  labels:
+    {{- include "fcp.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $fullname }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $saName }}
+    namespace: {{ $saNamespace }}
+{{- end }}
+{{- end }}
+{{- end }}

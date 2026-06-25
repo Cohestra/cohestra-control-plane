@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fcp-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: streaming
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kafka

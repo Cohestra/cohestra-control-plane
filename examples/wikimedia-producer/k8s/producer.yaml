@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wikimedia-producer
+  namespace: streaming
+  labels:
+    app.kubernetes.io/name: wikimedia-producer
+    app.kubernetes.io/managed-by: fcp-sample
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wikimedia-producer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wikimedia-producer
+    spec:
+      containers:
+        - name: producer
+          image: localhost:5001/wikimedia-producer:latest
+          env:
+            - name: KAFKA_BROKERS
+              value: "fcp-kafka-bootstrap.kafka.svc:9092"
+            - name: KAFKA_TOPIC
+              value: "wikimedia.recentchange"
+            - name: STREAM_URL
+              value: "https://stream.wikimedia.org/v2/stream/recentchange"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi

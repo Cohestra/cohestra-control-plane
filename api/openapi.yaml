@@ -1,0 +1,187 @@
+openapi: 3.1.0
+info:
+  title: FCP (Flink Control Plane)
+  version: 0.1.0
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      responses:
+        "200":
+          description: Healthy
+  /api/v1/deployments/{env}/{namespace}/{name}:
+    put:
+      summary: Start a deployment actor
+      parameters:
+        - $ref: "#/components/parameters/Env"
+        - $ref: "#/components/parameters/Namespace"
+        - $ref: "#/components/parameters/Name"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Registration"
+      responses:
+        "201":
+          description: Actor started or already running
+  /api/v1/deployments/{env}/{namespace}/{name}/actor:
+    get:
+      summary: Query deployment actor state
+      parameters:
+        - $ref: "#/components/parameters/Env"
+        - $ref: "#/components/parameters/Namespace"
+        - $ref: "#/components/parameters/Name"
+      responses:
+        "200":
+          description: Actor view
+  /api/v1/deployments/{env}/{namespace}/{name}/deploy:
+    post:
+      summary: Submit a controlled rollout
+      parameters:
+        - $ref: "#/components/parameters/Env"
+        - $ref: "#/components/parameters/Namespace"
+        - $ref: "#/components/parameters/Name"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeployRequest"
+      responses:
+        "202":
+          description: Command accepted
+        "400":
+          description: Invalid command
+  /api/v1/deployments/{env}/{namespace}/{name}/savepoint:
+    post:
+      summary: Request a savepoint
+      parameters:
+        - $ref: "#/components/parameters/Env"
+        - $ref: "#/components/parameters/Namespace"
+        - $ref: "#/components/parameters/Name"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Command accepted
+  /api/v1/deployments/{env}/{namespace}/{name}/suspend:
+    post:
+      summary: Suspend a deployment
+      parameters:
+        - $ref: "#/components/parameters/Env"
+        - $ref: "#/components/parameters/Namespace"
+        - $ref: "#/components/parameters/Name"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Command accepted
+  /api/v1/deployments/{env}/{namespace}/{name}/resume:
+    post:
+      summary: Resume a deployment
+      parameters:
+        - $ref: "#/components/parameters/Env"
+        - $ref: "#/components/parameters/Namespace"
+        - $ref: "#/components/parameters/Name"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Command accepted
+  /api/v1/deployments/{env}/{namespace}/{name}/rollback:
+    post:
+      summary: Roll back to a recorded version
+      parameters:
+        - $ref: "#/components/parameters/Env"
+        - $ref: "#/components/parameters/Namespace"
+        - $ref: "#/components/parameters/Name"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Command accepted
+  /api/v1/deployments/{env}/{namespace}/{name}/scale:
+    post:
+      summary: Submit a controlled scale operation
+      parameters:
+        - $ref: "#/components/parameters/Env"
+        - $ref: "#/components/parameters/Namespace"
+        - $ref: "#/components/parameters/Name"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Command accepted
+  /api/v1/clusters/{env}/{namespace}/freeze:
+    post:
+      summary: Freeze runtime mutations in a namespace
+      parameters:
+        - $ref: "#/components/parameters/Env"
+        - $ref: "#/components/parameters/Namespace"
+      responses:
+        "202":
+          description: Freeze signal accepted
+  /api/v1/clusters/{env}/{namespace}/unfreeze:
+    post:
+      summary: Remove a namespace freeze
+      parameters:
+        - $ref: "#/components/parameters/Env"
+        - $ref: "#/components/parameters/Namespace"
+      responses:
+        "202":
+          description: Unfreeze signal accepted
+components:
+  parameters:
+    Env:
+      name: env
+      in: path
+      required: true
+      schema: {type: string}
+    Namespace:
+      name: namespace
+      in: path
+      required: true
+      schema: {type: string}
+    Name:
+      name: name
+      in: path
+      required: true
+      schema: {type: string}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: {type: string}
+  schemas:
+    Registration:
+      type: object
+      properties:
+        owner: {type: string}
+        serviceAccount: {type: string}
+        nodePool: {type: string}
+    DeployRequest:
+      type: object
+      required: [spec]
+      properties:
+        requester: {type: string}
+        approved: {type: boolean}
+        incident: {type: boolean}
+        reason: {type: string}
+        spec:
+          $ref: "#/components/schemas/DeploymentSpec"
+    DeploymentSpec:
+      type: object
+      required: [imageDigest, flinkVersion, parallelism, maxParallelism]
+      properties:
+        imageDigest: {type: string}
+        gitRef: {type: string}
+        flinkVersion: {type: string}
+        jobArgs:
+          type: object
+          additionalProperties: {type: string}
+        flinkConfig:
+          type: object
+          additionalProperties: {type: string}
+        parallelism: {type: integer, minimum: 1}
+        maxParallelism: {type: integer, minimum: 1}
+        autoscalerEnabled: {type: boolean}

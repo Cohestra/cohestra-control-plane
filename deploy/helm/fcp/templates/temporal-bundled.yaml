@@ -1,0 +1,144 @@
+{{- if eq .Values.temporal.mode "bundled" }}
+{{- $fullname := include "fcp.fullname" . }}
+# ------------------------------------------------------------------------------
+# Bundled Temporal for trials / PoC ONLY. Single Postgres + single auto-setup
+# Temporal node with ephemeral storage. Do NOT use in production — point
+# temporal.mode=external at a real Temporal cluster or Temporal Cloud instead.
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-postgresql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fcp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: temporal-postgresql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: temporal-postgresql
+  template:
+    metadata:
+      labels:
+        {{- include "fcp.labels" . | nindent 8 }}
+        app.kubernetes.io/component: temporal-postgresql
+    spec:
+      containers:
+        - name: postgresql
+          image: {{ .Values.temporal.bundled.postgresImage }}
+          env:
+            - { name: POSTGRES_USER, value: temporal }
+            - { name: POSTGRES_PASSWORD, value: temporal }
+            - { name: POSTGRES_DB, value: temporal }
+          ports:
+            - containerPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-postgresql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fcp.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: temporal-postgresql
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-temporal
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fcp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: temporal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: temporal
+  template:
+    metadata:
+      labels:
+        {{- include "fcp.labels" . | nindent 8 }}
+        app.kubernetes.io/component: temporal
+    spec:
+      containers:
+        - name: temporal
+          image: {{ .Values.temporal.bundled.image }}
+          env:
+            - { name: DB, value: postgres12 }
+            - { name: DB_PORT, value: "5432" }
+            - { name: POSTGRES_USER, value: temporal }
+            - { name: POSTGRES_PWD, value: temporal }
+            - { name: POSTGRES_SEEDS, value: "{{ $fullname }}-postgresql" }
+          ports:
+            - containerPort: 7233
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-temporal
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fcp.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: temporal
+  ports:
+    - port: 7233
+      targetPort: 7233
+{{- if .Values.temporal.bundled.uiEnabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-temporal-web
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fcp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: temporal-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: temporal-web
+  template:
+    metadata:
+      labels:
+        {{- include "fcp.labels" . | nindent 8 }}
+        app.kubernetes.io/component: temporal-web
+    spec:
+      containers:
+        - name: temporal-web
+          image: {{ .Values.temporal.bundled.uiImage }}
+          env:
+            - { name: TEMPORAL_ADDRESS, value: "{{ $fullname }}-temporal:7233" }
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-temporal-web
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fcp.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: temporal-web
+  ports:
+    - port: 8080
+      targetPort: 8080
+{{- end }}
+{{- end }}

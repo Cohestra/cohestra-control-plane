@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fcp.fullname" . }}-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fcp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  {{- if not .Values.worker.autoscaling.enabled }}
+  replicas: {{ .Values.worker.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "fcp.labels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "fcp.serviceAccountName" . }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: worker
+          image: "{{ .Values.image.worker.repository }}:{{ .Values.image.worker.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            {{- include "fcp.commonEnv" . | nindent 12 }}
+            - name: FLINK_LEASE_NAMESPACE
+              value: {{ include "fcp.leaseNamespace" . | quote }}
+            - name: FLINK_SLOT_BUDGET
+              value: {{ .Values.flink.slotBudget | quote }}
+            - name: WORKER_MAX_CONCURRENT_ACTIVITIES
+              value: {{ .Values.worker.tuning.maxConcurrentActivities | quote }}
+            - name: WORKER_MAX_CONCURRENT_WORKFLOW_TASKS
+              value: {{ .Values.worker.tuning.maxConcurrentWorkflowTasks | quote }}
+            {{- if .Values.worker.tuning.activitiesPerSecond }}
+            - name: WORKER_ACTIVITIES_PER_SECOND
+              value: {{ .Values.worker.tuning.activitiesPerSecond | quote }}
+            {{- end }}
+            - name: KUBE_CLIENT_QPS
+              value: {{ .Values.worker.tuning.kubeClientQPS | quote }}
+            - name: KUBE_CLIENT_BURST
+              value: {{ .Values.worker.tuning.kubeClientBurst | quote }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

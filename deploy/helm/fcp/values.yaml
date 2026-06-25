@@ -1,0 +1,98 @@
+# Default values for FCP.
+# Onboarding model: you bring your own Flink Kubernetes Operator and Flink jobs.
+# This chart installs only the FCP control plane (control-api + worker) and the
+# RBAC it needs to manage FlinkDeployments in your namespaces.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+  controlApi:
+    repository: ghcr.io/as791/fcp-control-api
+    tag: latest
+  worker:
+    # The worker MUST be the Kubernetes-backed image (backends/kubernetes), not
+    # the simulated core worker.
+    repository: ghcr.io/as791/fcp-k8s-worker
+    tag: latest
+
+controlApi:
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    port: 8080
+    nodePort: ""          # set (e.g. 30080) when type=NodePort for local/kind
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits:   { cpu: "1",  memory: 256Mi }
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+worker:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 250m, memory: 256Mi }
+    limits:   { cpu: "2",  memory: 512Mi }
+  autoscaling:
+    enabled: false
+    minReplicas: 3
+    maxReplicas: 50
+    targetCPUUtilizationPercentage: 70
+  # Tuning knobs surfaced as environment variables (see docs/SCALING.md).
+  tuning:
+    maxConcurrentActivities: 200
+    maxConcurrentWorkflowTasks: 200
+    activitiesPerSecond: ""        # empty = unlimited
+    kubeClientQPS: 50
+    kubeClientBurst: 100
+
+# Temporal connection. mode: external (BYO / Temporal Cloud) or bundled (trials).
+temporal:
+  mode: external
+  address: ""                      # required when mode=external, e.g. my-temporal-frontend:7233
+  namespace: default
+  tls: false                       # force TLS to the frontend
+  apiKey:
+    secretName: ""                 # Secret holding a Temporal Cloud API key (enables TLS)
+    secretKey: apiKey
+  bundled:
+    # Used only when mode=bundled. A minimal single-binary Temporal + Postgres,
+    # intended for trials/PoC — not for production.
+    image: temporalio/auto-setup:1.27.2
+    uiImage: temporalio/ui:2.39.0
+    uiEnabled: true
+    postgresImage: postgres:16-alpine
+
+taskQueue:
+  actor: flink-control-actors
+  activity: flink-control-activities
+  shards: 1                        # see docs/SCALING.md for sharding at 10k jobs
+
+flink:
+  # Namespaces (your own) where FCP creates/manages FlinkDeployments. RBAC is
+  # granted only in these namespaces unless rbac.clusterScope=true.
+  watchNamespaces:
+    - streaming
+  leaseNamespace: ""               # defaults to the release namespace
+  slotBudget: 4096
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+    # EKS IRSA example:
+    # eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/fcp-control-plane
+
+rbac:
+  create: true
+  clusterScope: false              # false: Role/RoleBinding per watched namespace
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,10 @@
+.DS_Store
+.env
+bin/
+coverage.out
+graphify-out/
+.claude/settings.local.json
+
+
+# compiled example binaries
+examples/wikimedia-producer/wikimedia-producer
