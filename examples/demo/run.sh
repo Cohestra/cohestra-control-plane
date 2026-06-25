@@ -8,9 +8,9 @@ set -euo pipefail
 
 API="${FCP_API:-http://localhost:8080}"
 REGISTRY="${REGISTRY:-localhost:5001}"
-ENV="integration"
-NS="streaming"
-NAME="orders"
+ENV="${FCP_ENV:-integration}"
+NS="${FCP_NS:-streaming}"
+NAME="${FCP_NAME:-orders}"
 BASE="${API}/api/v1/deployments/${ENV}/${NS}/${NAME}"
 CLUSTER_BASE="${API}/api/v1/clusters/${ENV}/${NS}"
 

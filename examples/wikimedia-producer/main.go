@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -28,6 +29,9 @@ func main() {
 	brokers := strings.Split(env("KAFKA_BROKERS", "localhost:9092"), ",")
 	topic := env("KAFKA_TOPIC", "wikimedia.recentchange")
 	streamURL := env("STREAM_URL", defaultStreamURL)
+	// Wikimedia EventStreams requires a descriptive User-Agent; without one the
+	// connection succeeds (HTTP 200) but no events are delivered.
+	userAgent := env("USER_AGENT", "fcp-wikimedia-producer/1.0 (https://github.com/as791/Flink-Actor-Control-Plane)")
 
 	writer := &kafka.Writer{
 		Addr:         kafka.TCP(brokers...),
@@ -42,7 +46,7 @@ func main() {
 
 	backoff := time.Second
 	for ctx.Err() == nil {
-		if err := stream(ctx, streamURL, writer); err != nil && ctx.Err() == nil {
+		if err := stream(ctx, streamURL, userAgent, writer); err != nil && ctx.Err() == nil {
 			slog.Warn("stream ended, reconnecting", "error", err, "backoff", backoff)
 			sleep(ctx, backoff)
 			if backoff < 30*time.Second {
@@ -63,17 +67,22 @@ type recentChange struct {
 	Type       string `json:"type"`
 }
 
-func stream(ctx context.Context, url string, writer *kafka.Writer) error {
+func stream(ctx context.Context, url, userAgent string, writer *kafka.Writer) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("stream returned HTTP %d", resp.StatusCode)
+	}
+	slog.Info("connected to event stream", "status", resp.StatusCode)
 
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
