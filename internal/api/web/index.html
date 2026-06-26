@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09110f">
+  <title>FCP Operations Console</title>
+  <link rel="stylesheet" href="/ui/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <div>
+          <strong>FCP</strong>
+          <small>Operations console</small>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Primary navigation">
+        <button class="nav-item active" data-view="overview">
+          <span class="nav-icon" aria-hidden="true">◇</span> Overview
+        </button>
+        <button class="nav-item" data-view="deploy">
+          <span class="nav-icon" aria-hidden="true">↑</span> Deploy
+        </button>
+        <button class="nav-item" data-view="history">
+          <span class="nav-icon" aria-hidden="true">≡</span> History
+        </button>
+      </nav>
+
+      <div class="sidebar-section">
+        <div class="section-label">
+          <span>Targets</span>
+          <span id="target-count" class="section-count">0</span>
+          <button class="icon-button" id="add-target-button" title="Add target">+</button>
+        </div>
+        <label class="target-search" for="target-search">
+          <span class="sr-only">Filter targets</span>
+          <input id="target-search" type="search" placeholder="Filter by name, env, namespace">
+        </label>
+        <div id="target-list" class="target-list"></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <a href="/healthz" target="_blank" rel="noreferrer">
+          <span class="connection-dot"></span>
+          <span>
+            API connected
+            <small>Same-origin control endpoint</small>
+          </span>
+        </a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow" id="breadcrumb">Environment / namespace</div>
+          <h1 id="page-title">Deployment overview</h1>
+        </div>
+        <div class="topbar-actions">
+          <span class="last-updated" id="last-updated">Not loaded</span>
+          <button class="button secondary" id="refresh-button">Refresh</button>
+          <button class="button primary" data-open-deploy>New rollout</button>
+        </div>
+      </header>
+
+      <div id="flash" class="flash" role="status" aria-live="polite"></div>
+
+      <section class="view active" id="overview-view">
+        <div class="identity-strip">
+          <div>
+            <span class="status-badge neutral" id="actor-status">UNKNOWN</span>
+            <h2 id="deployment-name">Select a deployment</h2>
+            <p id="workflow-id">Add or select a target to inspect its actor.</p>
+          </div>
+          <div class="quick-actions">
+            <a class="button monitor disabled" id="flink-dashboard-link" href="#" target="_blank" rel="noreferrer" aria-disabled="true">Open Flink dashboard</a>
+            <button class="button secondary" data-command="scale">Scale</button>
+            <button class="button secondary" data-command="savepoint">Savepoint</button>
+            <button class="button secondary" data-command="suspend">Suspend</button>
+            <button class="button secondary" data-command="resume">Resume</button>
+            <button class="button danger" data-open-rollback>Rollback</button>
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+          <article class="metric-card">
+            <span>Current version</span>
+            <strong id="metric-version">—</strong>
+            <small id="metric-image">No version reported</small>
+          </article>
+          <article class="metric-card">
+            <span>Parallelism</span>
+            <strong id="metric-parallelism">—</strong>
+            <small id="metric-slots">No resource shape</small>
+          </article>
+          <article class="metric-card">
+            <span>Health</span>
+            <strong id="metric-health">—</strong>
+            <small id="metric-health-detail">Awaiting actor state</small>
+          </article>
+          <article class="metric-card">
+            <span>Pending operations</span>
+            <strong id="metric-pending">—</strong>
+            <small id="metric-autoscaler">Autoscaler unknown</small>
+          </article>
+        </div>
+
+        <div class="content-grid">
+          <article class="panel runtime-panel">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Runtime</span>
+                <h3>Health gates</h3>
+              </div>
+              <span class="status-badge neutral" id="runtime-badge">NO DATA</span>
+            </div>
+            <div class="health-grid" id="health-grid">
+              <div class="health-item"><span>Running</span><strong>—</strong></div>
+              <div class="health-item"><span>Checkpoint</span><strong>—</strong></div>
+              <div class="health-item"><span>Sink</span><strong>—</strong></div>
+              <div class="health-item"><span>Restarts</span><strong>—</strong></div>
+              <div class="health-item"><span>Backpressure</span><strong>—</strong></div>
+              <div class="health-item"><span>Kafka lag</span><strong>—</strong></div>
+            </div>
+          </article>
+
+          <article class="panel span-2 cluster-panel">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Namespace guardrail</span>
+                <h3>Cluster freeze</h3>
+              </div>
+              <span class="status-badge neutral" id="cluster-status">UNKNOWN</span>
+            </div>
+            <p class="panel-copy" id="cluster-detail">
+              Load a target to inspect namespace mutation controls.
+            </p>
+            <div class="button-row">
+              <button class="button danger" id="freeze-button">Freeze</button>
+              <button class="button secondary" id="unfreeze-button">Unfreeze</button>
+            </div>
+          </article>
+
+          <article class="panel span-2">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Actor journal</span>
+                <h3>Recent operations</h3>
+              </div>
+              <button class="text-button" data-view-link="history">View all versions →</button>
+            </div>
+            <div class="operation-list" id="operation-list">
+              <div class="empty-state">No actor loaded.</div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">State recovery</span>
+                <h3>Latest savepoint</h3>
+              </div>
+            </div>
+            <div id="savepoint-card" class="savepoint-card">
+              <strong>No savepoint</strong>
+              <p>The actor has not reported a savepoint.</p>
+            </div>
+            <div class="maintenance-actions">
+              <span class="panel-kicker">Actor maintenance</span>
+              <button class="text-button" data-command="autoscaler-enable">Enable autoscaler</button>
+              <button class="text-button" data-command="autoscaler-freeze">Freeze autoscaler</button>
+              <button class="text-button" data-command="continue-as-new">Compact history</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="deploy-view">
+        <div class="form-layout">
+          <form class="panel deployment-form" id="deploy-form">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Controlled change</span>
+                <h3>Submit rollout</h3>
+              </div>
+              <span class="status-badge warning">IDEMPOTENT</span>
+            </div>
+
+            <div class="form-grid">
+              <label class="span-2">Image digest
+                <input name="imageDigest" required placeholder="registry.example/job@sha256:…">
+              </label>
+              <label>Flink version
+                <input name="flinkVersion" value="2.2" required>
+              </label>
+              <label>Git reference
+                <input name="gitRef" placeholder="main@abc123">
+              </label>
+              <label>Parallelism
+                <input name="parallelism" type="number" min="1" value="4" required>
+              </label>
+              <label>Max parallelism
+                <input name="maxParallelism" type="number" min="1" value="128" required>
+              </label>
+              <label>TaskManager CPU
+                <input name="taskManagerCpu" type="number" min="0" step="0.1" value="2">
+              </label>
+              <label>Memory (MiB)
+                <input name="taskManagerMemoryMiB" type="number" min="0" value="4096">
+              </label>
+              <label>TaskManager count
+                <input name="taskManagerCount" type="number" min="0" value="2">
+              </label>
+              <label>Slots per manager
+                <input name="slotsPerManager" type="number" min="0" value="4">
+              </label>
+              <label class="span-2">Job arguments <small>One key=value pair per line</small>
+                <textarea name="jobArgs" rows="4" placeholder="source.topic=orders"></textarea>
+              </label>
+              <label class="span-2">Flink configuration <small>One key=value pair per line</small>
+                <textarea name="flinkConfig" rows="4" placeholder="state.backend.type=rocksdb"></textarea>
+              </label>
+            </div>
+
+            <fieldset>
+              <legend>State compatibility</legend>
+              <label class="check"><input name="jobGraphCompatible" type="checkbox" checked> Job graph compatible</label>
+              <label class="check"><input name="operatorUidsStable" type="checkbox" checked> Operator UIDs stable</label>
+              <label class="check"><input name="allowNonRestored" type="checkbox"> Allow non-restored state</label>
+              <label class="check"><input name="freshStartApproved" type="checkbox"> Fresh start approved</label>
+              <label class="check"><input name="autoscalerEnabled" type="checkbox"> Enable autoscaler</label>
+              <label class="check"><input name="approved" type="checkbox"> Operation approved</label>
+            </fieldset>
+
+            <div class="form-grid">
+              <label>Requester
+                <input name="requester" value="operator" required>
+              </label>
+              <label>Idempotency key
+                <input name="idempotencyKey" required>
+              </label>
+              <label class="span-2">Reason
+                <input name="reason" placeholder="Why this rollout is needed">
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="button secondary" data-view-link="overview">Cancel</button>
+              <button type="submit" class="button primary">Submit controlled rollout</button>
+            </div>
+          </form>
+
+          <aside class="panel rollout-summary">
+            <span class="panel-kicker">Before you submit</span>
+            <h3>Safety contract</h3>
+            <ol>
+              <li><span>01</span> The actor classifies the change and rejects unsafe state transitions.</li>
+              <li><span>02</span> Stateful changes create a savepoint before the new spec is applied.</li>
+              <li><span>03</span> Runtime, checkpoint, restart, lag, backpressure, and sink gates must pass.</li>
+              <li><span>04</span> Failed health gates restore the last healthy version.</li>
+            </ol>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="history-view">
+        <div class="content-grid">
+          <article class="panel span-3">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Deployment archive</span>
+                <h3>Recorded versions</h3>
+              </div>
+              <button class="button secondary" id="load-versions-button">Reload versions</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Version</th>
+                    <th>Created</th>
+                    <th>Image</th>
+                    <th>Parallelism</th>
+                    <th>Health</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="versions-table">
+                  <tr><td colspan="6" class="empty-cell">Select a deployment to load versions.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="target-dialog">
+    <form method="dialog" id="target-form">
+      <div class="dialog-header">
+        <div>
+          <span class="panel-kicker">Actor identity</span>
+          <h3>Add deployment target</h3>
+        </div>
+        <button class="icon-button" value="cancel" formnovalidate aria-label="Close">×</button>
+      </div>
+      <label>Environment <input name="environment" value="integration" required></label>
+      <label>Namespace <input name="namespace" value="streaming" required></label>
+      <label>Deployment name <input name="name" placeholder="orders" required></label>
+      <label>Owner <input name="owner" placeholder="streaming"></label>
+      <label>Service account <input name="serviceAccount" placeholder="flink-orders"></label>
+      <label>Node pool <input name="nodePool" value="default"></label>
+      <label>Flink dashboard URL <input name="flinkDashboardUrl" type="url" placeholder="http://localhost:8081"></label>
+      <div class="dialog-actions">
+        <button class="button secondary" value="cancel" formnovalidate>Cancel</button>
+        <button class="button primary" value="default">Register target</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="action-dialog">
+    <form method="dialog" id="action-form">
+      <div class="dialog-header">
+        <div>
+          <span class="panel-kicker" id="action-kicker">Confirm command</span>
+          <h3 id="action-title">Run operation</h3>
+        </div>
+        <button class="icon-button" value="cancel" formnovalidate aria-label="Close">×</button>
+      </div>
+      <input type="hidden" name="command">
+      <label id="action-version-label" class="hidden">Target version
+        <input name="targetVersion" type="number" min="1">
+      </label>
+      <label id="action-parallelism-label" class="hidden">Parallelism
+        <input name="parallelism" type="number" min="1">
+      </label>
+      <label>Requester <input name="requester" value="operator" required></label>
+      <label>Idempotency key <input name="idempotencyKey" required></label>
+      <label>Reason <textarea name="reason" rows="3"></textarea></label>
+      <label class="check"><input name="approved" type="checkbox"> Approved</label>
+      <div class="dialog-actions">
+        <button class="button secondary" value="cancel" formnovalidate>Cancel</button>
+        <button class="button primary" value="default">Run command</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/ui/app.js" defer></script>
+</body>
+</html>

@@ -31,6 +31,7 @@ var (
 const (
 	argJarURI     = "fcp.jarURI"
 	argEntryClass = "fcp.entryClass"
+	argJMMemory   = "fcp.jobManagerMemory"
 	defaultJarURI = "local:///opt/flink/usrlib/job.jar"
 )
 
@@ -123,7 +124,7 @@ func buildFlinkDeployment(input activities.ApplyDeploymentInput, defaults map[st
 			"serviceAccount":     stringOr(input.Identity.ServiceAccount, "flink"),
 			"jobManager": map[string]interface{}{
 				"resource": map[string]interface{}{
-					"memory": "2048m",
+					"memory": stringOr(spec.JobArgs["fcp.jobManagerMemory"], "1024m"),
 					"cpu":    float64(1),
 				},
 			},
@@ -184,7 +185,7 @@ func setIfAbsent(m map[string]string, key, value string) {
 func programArgs(jobArgs map[string]string) []interface{} {
 	keys := make([]string, 0, len(jobArgs))
 	for k := range jobArgs {
-		if k == argJarURI || k == argEntryClass {
+		if k == argJarURI || k == argEntryClass || k == argJMMemory {
 			continue
 		}
 		keys = append(keys, k)

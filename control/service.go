@@ -2,13 +2,17 @@ package control
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/flink-control-plane/fcp"
 	"github.com/flink-control-plane/fcp/domain"
 	"github.com/flink-control-plane/fcp/workflows"
 	"go.temporal.io/api/serviceerror"
+	workflowservice "go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
 )
 
@@ -150,6 +154,139 @@ func (s *Service) Versions(ctx context.Context, identity domain.DeploymentIdenti
 		return nil, fmt.Errorf("decode versions: %w", err)
 	}
 	return versions, nil
+}
+
+type deploymentListCursor struct {
+	NextPageToken []byte `json:"nextPageToken,omitempty"`
+	Offset        int    `json:"offset,omitempty"`
+}
+
+func (s *Service) ListDeployments(ctx context.Context, options domain.DeploymentListOptions) (domain.DeploymentList, error) {
+	limit := options.Limit
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > 500 {
+		limit = 500
+	}
+
+	cursor, err := decodeDeploymentListCursor(options.PageToken)
+	if err != nil {
+		return domain.DeploymentList{}, err
+	}
+
+	result := domain.DeploymentList{Deployments: make([]domain.DeploymentSummary, 0, limit)}
+	for len(result.Deployments) < limit {
+		requestToken := cursor.NextPageToken
+		pageSize := limit * 2
+		if pageSize < 100 {
+			pageSize = 100
+		}
+		if pageSize > 1000 {
+			pageSize = 1000
+		}
+		response, err := s.client.ListWorkflow(ctx, &workflowservice.ListWorkflowExecutionsRequest{
+			PageSize:      int32(pageSize),
+			NextPageToken: requestToken,
+			Query:         "CloseTime IS NULL",
+		})
+		if err != nil {
+			return domain.DeploymentList{}, fmt.Errorf("list deployment actors: %w", err)
+		}
+		if cursor.Offset < 0 || cursor.Offset > len(response.Executions) {
+			return domain.DeploymentList{}, domain.ErrInvalidDeploymentPageToken
+		}
+
+		for index := cursor.Offset; index < len(response.Executions); index++ {
+			execution := response.Executions[index]
+			if execution.GetType().GetName() != "DeploymentActorWorkflow" {
+				continue
+			}
+			workflowID := execution.GetExecution().GetWorkflowId()
+			identity, ok := deploymentIdentityFromWorkflowID(workflowID)
+			if !ok || !deploymentMatches(identity, options) {
+				continue
+			}
+
+			summary := domain.DeploymentSummary{
+				Identity:   identity,
+				WorkflowID: workflowID,
+			}
+			if execution.GetStartTime() != nil {
+				summary.StartedAt = execution.GetStartTime().AsTime()
+			}
+			result.Deployments = append(result.Deployments, summary)
+
+			if len(result.Deployments) == limit {
+				nextCursor := deploymentListCursor{}
+				if index+1 < len(response.Executions) {
+					nextCursor.NextPageToken = requestToken
+					nextCursor.Offset = index + 1
+				} else {
+					nextCursor.NextPageToken = response.NextPageToken
+				}
+				result.NextPageToken, err = encodeDeploymentListCursor(nextCursor)
+				if err != nil {
+					return domain.DeploymentList{}, err
+				}
+				return result, nil
+			}
+		}
+
+		if len(response.NextPageToken) == 0 {
+			break
+		}
+		cursor = deploymentListCursor{NextPageToken: response.NextPageToken}
+	}
+
+	return result, nil
+}
+
+func deploymentIdentityFromWorkflowID(workflowID string) (domain.DeploymentIdentity, bool) {
+	const prefix = "flink-deployment/"
+	if !strings.HasPrefix(workflowID, prefix) {
+		return domain.DeploymentIdentity{}, false
+	}
+	parts := strings.SplitN(strings.TrimPrefix(workflowID, prefix), "/", 3)
+	if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
+		return domain.DeploymentIdentity{}, false
+	}
+	return domain.DeploymentIdentity{
+		Environment: parts[0],
+		Namespace:   parts[1],
+		Name:        parts[2],
+	}, true
+}
+
+func deploymentMatches(identity domain.DeploymentIdentity, options domain.DeploymentListOptions) bool {
+	return (options.Environment == "" || identity.Environment == options.Environment) &&
+		(options.Namespace == "" || identity.Namespace == options.Namespace)
+}
+
+func decodeDeploymentListCursor(value string) (deploymentListCursor, error) {
+	if value == "" {
+		return deploymentListCursor{}, nil
+	}
+	data, err := base64.RawURLEncoding.DecodeString(value)
+	if err != nil {
+		return deploymentListCursor{}, domain.ErrInvalidDeploymentPageToken
+	}
+	var cursor deploymentListCursor
+	if err := json.Unmarshal(data, &cursor); err != nil {
+		return deploymentListCursor{}, domain.ErrInvalidDeploymentPageToken
+	}
+	return cursor, nil
+}
+
+func encodeDeploymentListCursor(cursor deploymentListCursor) (string, error) {
+	if len(cursor.NextPageToken) == 0 && cursor.Offset == 0 {
+		return "", nil
+	}
+	data, err := json.Marshal(cursor)
+	if err != nil {
+		return "", fmt.Errorf("encode deployment list page token: %w", err)
+	}
+	return base64.RawURLEncoding.EncodeToString(data), nil
 }
 
 func mutatesRuntime(commandType domain.CommandType) bool {

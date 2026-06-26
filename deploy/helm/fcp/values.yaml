@@ -96,6 +96,17 @@ rbac:
   create: true
   clusterScope: false              # false: Role/RoleBinding per watched namespace
 
+ingress:
+  enabled: false
+  className: ""            # e.g. "nginx"
+  annotations: {}
+  temporalUI:              # only renders in bundled Temporal mode
+    enabled: true
+    host: temporal.localhost
+  controlApi:
+    enabled: false
+    host: fcp.localhost
+
 podAnnotations: {}
 nodeSelector: {}
 tolerations: []

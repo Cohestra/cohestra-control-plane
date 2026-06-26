@@ -26,6 +26,18 @@ temporal:
   bundled:
     uiEnabled: true
 
+# Expose the bundled Temporal UI at http://temporal.localhost (needs an ingress
+# controller; on Docker Desktop install ingress-nginx, which binds to localhost).
+ingress:
+  enabled: true
+  className: nginx
+  temporalUI:
+    enabled: true
+    host: temporal.localhost
+  controlApi:
+    enabled: true
+    host: fcp.localhost
+
 flink:
   watchNamespaces:
     - streaming

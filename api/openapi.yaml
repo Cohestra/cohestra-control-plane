@@ -13,6 +13,31 @@ paths:
       responses:
         "200":
           description: Healthy
+  /api/v1/deployments:
+    get:
+      summary: List active deployment actors
+      parameters:
+        - name: environment
+          in: query
+          schema: {type: string}
+        - name: namespace
+          in: query
+          schema: {type: string}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 500, default: 100}
+        - name: pageToken
+          in: query
+          schema: {type: string}
+      responses:
+        "200":
+          description: Active deployment actors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeploymentList"
+        "400":
+          description: Invalid pagination parameters
   /api/v1/deployments/{env}/{namespace}/{name}:
     put:
       summary: Start a deployment actor
@@ -153,12 +178,41 @@ components:
       required: true
       schema: {type: string}
   schemas:
+    DeploymentIdentity:
+      type: object
+      required: [environment, namespace, name]
+      properties:
+        environment: {type: string}
+        namespace: {type: string}
+        name: {type: string}
+        owner: {type: string}
+        serviceAccount: {type: string}
+        nodePool: {type: string}
+        flinkDashboardUrl: {type: string, format: uri}
+    DeploymentSummary:
+      type: object
+      required: [identity, workflowId]
+      properties:
+        identity:
+          $ref: "#/components/schemas/DeploymentIdentity"
+        workflowId: {type: string}
+        startedAt: {type: string, format: date-time}
+    DeploymentList:
+      type: object
+      required: [deployments]
+      properties:
+        deployments:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeploymentSummary"
+        nextPageToken: {type: string}
     Registration:
       type: object
       properties:
         owner: {type: string}
         serviceAccount: {type: string}
         nodePool: {type: string}
+        flinkDashboardUrl: {type: string, format: uri}
     DeployRequest:
       type: object
       required: [spec]

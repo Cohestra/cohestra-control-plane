@@ -96,8 +96,15 @@ docker compose --profile app up --build
 
 Endpoints:
 
-- Control API: `http://localhost:8080`
+- FCP operations console: `http://localhost:8080`
+- Control API: `http://localhost:8080/api/v1`
 - Temporal UI: `http://localhost:8088`
+
+List active deployment actors:
+
+```bash
+curl 'http://localhost:8080/api/v1/deployments?environment=integration&namespace=streaming&limit=100'
+```
 
 Alternatively, start only Temporal and run the Go processes directly:
 
@@ -114,7 +121,7 @@ Register the deployment actor:
 ```bash
 curl -X PUT http://localhost:8080/api/v1/deployments/integration/streaming/orders \
   -H 'Content-Type: application/json' \
-  -d '{"owner":"streaming","serviceAccount":"flink-orders","nodePool":"arm64"}'
+  -d '{"owner":"streaming","serviceAccount":"flink-orders","nodePool":"arm64","flinkDashboardUrl":"http://localhost:8081"}'
 ```
 
 Deploy a digest-pinned version:
