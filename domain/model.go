@@ -3,12 +3,13 @@ package domain
 import "time"
 
 type DeploymentIdentity struct {
-	Environment    string `json:"environment"`
-	Namespace      string `json:"namespace"`
-	Name           string `json:"name"`
-	Owner          string `json:"owner,omitempty"`
-	ServiceAccount string `json:"serviceAccount,omitempty"`
-	NodePool       string `json:"nodePool,omitempty"`
+	Environment       string `json:"environment"`
+	Namespace         string `json:"namespace"`
+	Name              string `json:"name"`
+	Owner             string `json:"owner,omitempty"`
+	ServiceAccount    string `json:"serviceAccount,omitempty"`
+	NodePool          string `json:"nodePool,omitempty"`
+	FlinkDashboardURL string `json:"flinkDashboardUrl,omitempty"`
 }
 
 func (d DeploymentIdentity) WorkflowID() string {

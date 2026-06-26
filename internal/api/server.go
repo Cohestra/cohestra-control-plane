@@ -17,6 +17,7 @@ import (
 type ControlService interface {
 	EnsureDeploymentActor(rctx context.Context, identity domain.DeploymentIdentity, policy *domain.Policy) error
 	SendCommand(rctx context.Context, identity domain.DeploymentIdentity, command domain.DeploymentCommand) error
+	ListDeployments(rctx context.Context, options domain.DeploymentListOptions) (domain.DeploymentList, error)
 	Describe(rctx context.Context, identity domain.DeploymentIdentity) (domain.DeploymentActorView, error)
 	Versions(rctx context.Context, identity domain.DeploymentIdentity) ([]domain.DeploymentVersion, error)
 	SetClusterFreeze(rctx context.Context, environment, namespace string, command domain.ClusterCommand) error
@@ -39,9 +40,11 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) routes() {
+	registerUI(s.mux)
 	s.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
+	s.mux.HandleFunc("GET /api/v1/deployments", s.listDeployments)
 	s.mux.HandleFunc("PUT /api/v1/deployments/{env}/{namespace}/{name}", s.register)
 	s.mux.HandleFunc("GET /api/v1/deployments/{env}/{namespace}/{name}/actor", s.describe)
 	s.mux.HandleFunc("GET /api/v1/deployments/{env}/{namespace}/{name}/versions", s.versions)
@@ -57,6 +60,33 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/clusters/{env}/{namespace}/actor", s.describeCluster)
 	s.mux.HandleFunc("POST /api/v1/clusters/{env}/{namespace}/freeze", s.clusterCommand(domain.ClusterFreeze))
 	s.mux.HandleFunc("POST /api/v1/clusters/{env}/{namespace}/unfreeze", s.clusterCommand(domain.ClusterUnfreeze))
+}
+
+func (s *Server) listDeployments(w http.ResponseWriter, r *http.Request) {
+	limit := 100
+	if value := strings.TrimSpace(r.URL.Query().Get("limit")); value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed < 1 || parsed > 500 {
+			writeError(w, http.StatusBadRequest, errors.New("limit must be between 1 and 500"))
+			return
+		}
+		limit = parsed
+	}
+	result, err := s.control.ListDeployments(r.Context(), domain.DeploymentListOptions{
+		Environment: strings.TrimSpace(r.URL.Query().Get("environment")),
+		Namespace:   strings.TrimSpace(r.URL.Query().Get("namespace")),
+		Limit:       limit,
+		PageToken:   strings.TrimSpace(r.URL.Query().Get("pageToken")),
+	})
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidDeploymentPageToken) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) describeCluster(w http.ResponseWriter, r *http.Request) {
@@ -93,10 +123,11 @@ func (s *Server) clusterCommand(commandType domain.ClusterCommandType) http.Hand
 }
 
 type registrationRequest struct {
-	Owner          string         `json:"owner"`
-	ServiceAccount string         `json:"serviceAccount"`
-	NodePool       string         `json:"nodePool"`
-	Policy         *domain.Policy `json:"policy,omitempty"`
+	Owner             string         `json:"owner"`
+	ServiceAccount    string         `json:"serviceAccount"`
+	NodePool          string         `json:"nodePool"`
+	FlinkDashboardURL string         `json:"flinkDashboardUrl"`
+	Policy            *domain.Policy `json:"policy,omitempty"`
 }
 
 func (s *Server) register(w http.ResponseWriter, r *http.Request) {
@@ -106,6 +137,7 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	identity := identityFrom(r, request.Owner, request.ServiceAccount, request.NodePool)
+	identity.FlinkDashboardURL = strings.TrimSpace(request.FlinkDashboardURL)
 	if err := validateIdentity(identity); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
