@@ -29,9 +29,9 @@ var (
 // Reserved JobArgs keys that configure the FlinkDeployment job spec rather than
 // being passed through as program arguments.
 const (
-	argJarURI     = "fcp.jarURI"
-	argEntryClass = "fcp.entryClass"
-	argJMMemory   = "fcp.jobManagerMemory"
+	argJarURI     = "maestro.jarURI"
+	argEntryClass = "maestro.entryClass"
+	argJMMemory   = "maestro.jobManagerMemory"
 	defaultJarURI = "local:///opt/flink/usrlib/job.jar"
 )
 
@@ -114,12 +114,12 @@ func buildFlinkDeployment(input activities.ApplyDeploymentInput, defaults map[st
 			"name":      input.Identity.Name,
 			"namespace": input.Identity.Namespace,
 			"labels": map[string]interface{}{
-				"app.kubernetes.io/managed-by": "fcp",
-				"fcp.flink/environment":        input.Identity.Environment,
-				"fcp.flink/node-pool":          stringOr(input.Identity.NodePool, "default"),
+				"app.kubernetes.io/managed-by": "maestro",
+				"maestro.flink/environment":    input.Identity.Environment,
+				"maestro.flink/node-pool":      stringOr(input.Identity.NodePool, "default"),
 			},
 			"annotations": map[string]interface{}{
-				"fcp.flink/version-id": strconv.FormatInt(input.Version.VersionID, 10),
+				"maestro.flink/version-id": strconv.FormatInt(input.Version.VersionID, 10),
 			},
 		},
 		"spec": map[string]interface{}{
@@ -129,7 +129,7 @@ func buildFlinkDeployment(input activities.ApplyDeploymentInput, defaults map[st
 			"serviceAccount":     stringOr(input.Identity.ServiceAccount, "flink"),
 			"jobManager": map[string]interface{}{
 				"resource": map[string]interface{}{
-					"memory": stringOr(spec.JobArgs["fcp.jobManagerMemory"], "1024m"),
+					"memory": stringOr(spec.JobArgs["maestro.jobManagerMemory"], "1024m"),
 					"cpu":    float64(1),
 				},
 			},
@@ -213,7 +213,7 @@ func buildStateSnapshot(name string, identity domain.DeploymentIdentity) *unstru
 			"name":      name,
 			"namespace": identity.Namespace,
 			"labels": map[string]interface{}{
-				"app.kubernetes.io/managed-by": "fcp",
+				"app.kubernetes.io/managed-by": "maestro",
 			},
 		},
 		"spec": map[string]interface{}{

@@ -23,7 +23,7 @@ Query Flink's TaskManager CPU metrics exposed via the Prometheus reporter.
 ```python
 import math
 import requests
-from fcp_sdk import MaestroClient, AutoscalerBase, ScaleDecision
+from maestro_sdk import MaestroClient, AutoscalerBase, ScaleDecision
 
 class CPUAutoscaler(AutoscalerBase):
     TARGET_CPU = 0.60       # 60% target utilization
@@ -82,7 +82,7 @@ For EKS clusters with Container Insights enabled, read TaskManager pod CPU from 
 import boto3
 import math
 from datetime import datetime, timedelta
-from fcp_sdk import MaestroClient, AutoscalerBase, ScaleDecision
+from maestro_sdk import MaestroClient, AutoscalerBase, ScaleDecision
 
 class EKSCPUAutoscaler(AutoscalerBase):
     def __init__(self, client, env, ns, name, cluster_name, flink_deployment):
@@ -132,7 +132,7 @@ class EKSCPUAutoscaler(AutoscalerBase):
 Maestro's health summary includes `backpressureRatio` — a proxy for CPU saturation. No external metric source needed.
 
 ```python
-from fcp_sdk import AutoscalerBase, ScaleDecision
+from maestro_sdk import AutoscalerBase, ScaleDecision
 
 class BackpressureAutoscaler(AutoscalerBase):
     def evaluate(self, status):

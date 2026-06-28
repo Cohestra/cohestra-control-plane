@@ -39,7 +39,7 @@ Helm: `--set taskQueue.shards=16` wires both the control-api and worker tiers.
 
 ## 2. Worker tuning
 
-Per-worker (env, surfaced in `deploy/helm/fcp` `worker.tuning.*`):
+Per-worker (env, surfaced in `deploy/helm/maestro` `worker.tuning.*`):
 
 | Env | Default | Purpose |
 |---|---|---|
@@ -55,7 +55,7 @@ Idle actors evict cheaply and rehydrate on the next command.
 ## 3. Durable capacity leases
 
 `AcquireCapacityLease`/`ReleaseCapacityLease` persist to a per-node-pool `ConfigMap`
-(`fcp-leases-<pool>`) with optimistic concurrency. This keeps reservations consistent across
+(`maestro-leases-<pool>`) with optimistic concurrency. This keeps reservations consistent across
 a horizontally-scaled worker tier — an in-process map (the simulated backend) cannot.
 `FLINK_SLOT_BUDGET` caps reserved slots per pool.
 
@@ -79,7 +79,7 @@ repo's contracts are compatible with it.)
 
 ## 6. Autoscaling
 
-Both tiers ship optional HPAs (`deploy/helm/fcp` `controlApi.autoscaling` /
+Both tiers ship optional HPAs (`deploy/helm/maestro` `controlApi.autoscaling` /
 `worker.autoscaling`). CPU works as a baseline; for the worker tier, scaling on Temporal
 task-queue backlog (via the Temporal/SDK metrics + a custom metric) tracks demand more
 directly.

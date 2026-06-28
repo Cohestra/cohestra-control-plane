@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# End-to-end demo: drive every FCP workflow transition against a live kind
+# End-to-end demo: drive every Maestro workflow transition against a live kind
 # cluster running the Flink Operator 1.15 + Flink 2.2, asserting real
 # FlinkDeployment state after each step.
 #
 # Prereqs: the cluster is up (deploy/local 'make up'), plus kubectl, curl, jq.
 set -euo pipefail
 
-API="${FCP_API:-http://localhost:8080}"
+API="${MAESTRO_API:-http://localhost:8080}"
 REGISTRY="${REGISTRY:-localhost:5001}"
-ENV="${FCP_ENV:-integration}"
-NS="${FCP_NS:-streaming}"
-NAME="${FCP_NAME:-orders}"
+ENV="${MAESTRO_ENV:-integration}"
+NS="${MAESTRO_NS:-streaming}"
+NAME="${MAESTRO_NAME:-orders}"
 BASE="${API}/api/v1/deployments/${ENV}/${NS}/${NAME}"
 CLUSTER_BASE="${API}/api/v1/clusters/${ENV}/${NS}"
 
@@ -60,8 +60,8 @@ good_spec() { # <parallelism>
   "imageDigest": "${GOOD_DIGEST}",
   "flinkVersion": "2.2",
   "jobArgs": {
-    "fcp.entryClass": "com.example.fcp.WikiEditCount",
-    "bootstrap.servers": "fcp-kafka-bootstrap.kafka.svc:9092",
+    "maestro.entryClass": "com.example.maestro.WikiEditCount",
+    "bootstrap.servers": "maestro-kafka-bootstrap.kafka.svc:9092",
     "source.topic": "wikimedia.recentchange"
   },
   "flinkConfig": { "taskmanager.numberOfTaskSlots": "2" },

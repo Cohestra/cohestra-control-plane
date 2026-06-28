@@ -22,7 +22,7 @@ Maestro's health summary includes `kafkaLag` when the Flink job reports it. Simp
 
 ```python
 import math
-from fcp_sdk import MaestroClient, AutoscalerBase, ScaleDecision
+from maestro_sdk import MaestroClient, AutoscalerBase, ScaleDecision
 
 class KafkaLagAutoscaler(AutoscalerBase):
     MIN_PARALLELISM = 2
@@ -56,7 +56,7 @@ For Amazon MSK, read the `SumOffsetLag` metric from CloudWatch for more accurate
 import boto3
 import math
 from datetime import datetime, timedelta
-from fcp_sdk import MaestroClient, AutoscalerBase, ScaleDecision
+from maestro_sdk import MaestroClient, AutoscalerBase, ScaleDecision
 
 class MSKLagAutoscaler(AutoscalerBase):
     def __init__(self, client, env, ns, name, cluster_name, consumer_group, topic):
@@ -108,7 +108,7 @@ For Confluent Cloud, use the Metrics API to get consumer lag.
 ```python
 import requests
 import math
-from fcp_sdk import MaestroClient, AutoscalerBase, ScaleDecision
+from maestro_sdk import MaestroClient, AutoscalerBase, ScaleDecision
 
 class ConfluentLagAutoscaler(AutoscalerBase):
     def __init__(self, client, env, ns, name, api_key, api_secret, cluster_id, consumer_group):

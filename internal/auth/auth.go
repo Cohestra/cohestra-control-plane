@@ -44,7 +44,7 @@ func Middleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if cookie, err := r.Cookie("fcp_session"); err == nil {
+		if cookie, err := r.Cookie("maestro_session"); err == nil {
 			if exp, ok := sessions.Load(cookie.Value); ok && time.Now().Before(exp.(time.Time)) {
 				next.ServeHTTP(w, r)
 				return
@@ -65,14 +65,14 @@ func OAuthStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	state := randHex(16)
 	http.SetCookie(w, &http.Cookie{
-		Name: "fcp_state", Value: state, Path: "/",
+		Name: "maestro_state", Value: state, Path: "/",
 		HttpOnly: true, SameSite: http.SameSiteLaxMode,
 	})
 	http.Redirect(w, r, cfg.AuthCodeURL(state), http.StatusFound)
 }
 
 func OAuthCallbackHandler(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("fcp_state")
+	cookie, err := r.Cookie("maestro_state")
 	if err != nil || cookie.Value != r.URL.Query().Get("state") {
 		http.Error(w, "invalid state", http.StatusBadRequest)
 		return
@@ -84,17 +84,17 @@ func OAuthCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	token := randHex(32)
 	sessions.Store(token, time.Now().Add(8*time.Hour))
 	http.SetCookie(w, &http.Cookie{
-		Name: "fcp_session", Value: token, Path: "/",
+		Name: "maestro_session", Value: token, Path: "/",
 		HttpOnly: true, SameSite: http.SameSiteLaxMode, MaxAge: 28800,
 	})
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	if cookie, err := r.Cookie("fcp_session"); err == nil {
+	if cookie, err := r.Cookie("maestro_session"); err == nil {
 		sessions.Delete(cookie.Value)
 	}
-	http.SetCookie(w, &http.Cookie{Name: "fcp_session", MaxAge: -1, Path: "/"})
+	http.SetCookie(w, &http.Cookie{Name: "maestro_session", MaxAge: -1, Path: "/"})
 	http.Redirect(w, r, "/login", http.StatusFound)
 }
 

@@ -31,7 +31,7 @@ func main() {
 	streamURL := env("STREAM_URL", defaultStreamURL)
 	// Wikimedia EventStreams requires a descriptive User-Agent; without one the
 	// connection succeeds (HTTP 200) but no events are delivered.
-	userAgent := env("USER_AGENT", "fcp-wikimedia-producer/1.0 (https://github.com/as791/Flink-Actor-Control-Plane)")
+	userAgent := env("USER_AGENT", "maestro-wikimedia-producer/1.0 (https://github.com/as791/Flink-Actor-Control-Plane)")
 
 	writer := &kafka.Writer{
 		Addr:         kafka.TCP(brokers...),

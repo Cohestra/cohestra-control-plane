@@ -62,7 +62,7 @@ Resources:
 # autoscaler.py
 import math
 import os
-from fcp_sdk import MaestroClient, AutoscalerBase, ScaleDecision
+from maestro_sdk import MaestroClient, AutoscalerBase, ScaleDecision
 
 class KafkaLagAutoscaler(AutoscalerBase):
     def __init__(self, client, env, ns, name):
@@ -107,7 +107,7 @@ def handler(event, context):
 
 ```bash
 # Package
-pip install fcp-sdk -t package/
+pip install maestro-flink-sdk -t package/
 cp autoscaler.py package/
 cd package && zip -r ../autoscaler.zip . && cd ..
 
@@ -145,7 +145,7 @@ spec:
             args:
             - |
               import os, math
-              from fcp_sdk import MaestroClient, AutoscalerBase, ScaleDecision
+              from maestro_sdk import MaestroClient, AutoscalerBase, ScaleDecision
               
               class Scaler(AutoscalerBase):
                   def evaluate(self, status):

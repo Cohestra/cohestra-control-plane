@@ -33,7 +33,7 @@ func newLeaseStore(core kubernetes.Interface, namespace string, slotBudget int) 
 }
 
 func leaseConfigMapName(nodePool string) string {
-	return "fcp-leases-" + stringOr(nodePool, "default")
+	return "maestro-leases-" + stringOr(nodePool, "default")
 }
 
 func (s *leaseStore) acquire(ctx context.Context, input activities.AcquireLeaseInput, leaseID string) (domain.Lease, error) {
@@ -79,7 +79,7 @@ func (s *leaseStore) release(ctx context.Context, leaseID string) error {
 		// The lease ID encodes the node pool as the prefix-free suffix is unknown
 		// here, so we scan the known pools' ConfigMaps lazily by listing.
 		cms, err := s.core.CoreV1().ConfigMaps(s.namespace).List(ctx, metav1.ListOptions{
-			LabelSelector: "app.kubernetes.io/managed-by=fcp,fcp.flink/store=leases",
+			LabelSelector: "app.kubernetes.io/managed-by=maestro,maestro.flink/store=leases",
 		})
 		if err != nil {
 			return err
@@ -106,9 +106,9 @@ func (s *leaseStore) load(ctx context.Context, nodePool string) (*corev1.ConfigM
 				Name:      name,
 				Namespace: s.namespace,
 				Labels: map[string]string{
-					"app.kubernetes.io/managed-by": "fcp",
-					"fcp.flink/store":              "leases",
-					"fcp.flink/node-pool":          nodePool,
+					"app.kubernetes.io/managed-by": "maestro",
+					"maestro.flink/store":          "leases",
+					"maestro.flink/node-pool":      nodePool,
 				},
 			},
 			Data: map[string]string{},

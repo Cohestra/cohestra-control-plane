@@ -62,17 +62,17 @@ func main() {
 	}
 
 	activityWorker := worker.New(temporalClient, env("ACTIVITY_TASK_QUEUE", "flink-control-activities"), workerOptions)
-	fcp.RegisterActivities(activityWorker, backend)
+	maestro.RegisterActivities(activityWorker, backend)
 	if err := activityWorker.Start(); err != nil {
 		log.Fatalf("start activity worker: %v", err)
 	}
 	defer activityWorker.Stop()
 
 	// One actor worker per shard task queue.
-	actorQueues := fcp.ActorTaskQueues(env("ACTOR_TASK_QUEUE", "flink-control-actors"), intEnv("ACTOR_TASK_QUEUE_SHARDS", 1))
+	actorQueues := maestro.ActorTaskQueues(env("ACTOR_TASK_QUEUE", "flink-control-actors"), intEnv("ACTOR_TASK_QUEUE_SHARDS", 1))
 	for _, queue := range actorQueues[1:] {
 		actorWorker := worker.New(temporalClient, queue, workerOptions)
-		fcp.RegisterWorkflows(actorWorker)
+		maestro.RegisterWorkflows(actorWorker)
 		if err := actorWorker.Start(); err != nil {
 			log.Fatalf("start actor worker %s: %v", queue, err)
 		}
@@ -80,7 +80,7 @@ func main() {
 	}
 
 	primary := worker.New(temporalClient, actorQueues[0], workerOptions)
-	fcp.RegisterWorkflows(primary)
+	maestro.RegisterWorkflows(primary)
 
 	slog.Info("kubernetes-backed Maestro workers started",
 		"actorTaskQueues", actorQueues,

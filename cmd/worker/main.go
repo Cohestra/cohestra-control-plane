@@ -25,16 +25,16 @@ func main() {
 
 	simulated := activities.NewSimulated(cfg.Simulator.Delay)
 	activityWorker := worker.New(temporalClient, cfg.Actor.ActivityTaskQueue, worker.Options{})
-	fcp.RegisterActivities(activityWorker, simulated)
+	maestro.RegisterActivities(activityWorker, simulated)
 	if err := activityWorker.Start(); err != nil {
 		log.Fatal(err)
 	}
 	defer activityWorker.Stop()
 
-	actorQueues := fcp.ActorTaskQueues(cfg.Actor.TaskQueue, cfg.Actor.Shards)
+	actorQueues := maestro.ActorTaskQueues(cfg.Actor.TaskQueue, cfg.Actor.Shards)
 	for _, queue := range actorQueues[1:] {
 		actorWorker := worker.New(temporalClient, queue, worker.Options{})
-		fcp.RegisterWorkflows(actorWorker)
+		maestro.RegisterWorkflows(actorWorker)
 		if err := actorWorker.Start(); err != nil {
 			log.Fatal(err)
 		}
@@ -42,7 +42,7 @@ func main() {
 	}
 
 	primary := worker.New(temporalClient, actorQueues[0], worker.Options{})
-	fcp.RegisterWorkflows(primary)
+	maestro.RegisterWorkflows(primary)
 
 	slog.Info("Temporal workers started",
 		"actorTaskQueues", actorQueues,

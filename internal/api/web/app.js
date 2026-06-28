@@ -813,11 +813,11 @@ document.querySelector("#theme-toggle").addEventListener("click", () => {
   const dark = document.documentElement.getAttribute("data-theme") === "dark";
   if (dark) {
     document.documentElement.removeAttribute("data-theme");
-    localStorage.setItem("fcp.theme", "light");
+    localStorage.setItem("maestro.theme", "light");
     document.querySelector("#theme-toggle").textContent = "☀️";
   } else {
     document.documentElement.setAttribute("data-theme", "dark");
-    localStorage.setItem("fcp.theme", "dark");
+    localStorage.setItem("maestro.theme", "dark");
     document.querySelector("#theme-toggle").textContent = "🌙";
   }
 });

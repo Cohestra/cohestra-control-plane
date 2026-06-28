@@ -39,7 +39,7 @@ func NewService(temporalClient client.Client, actorTaskQueue, activityTaskQueue 
 
 // actorQueueFor returns the sharded actor task queue that owns a workflow ID.
 func (s *Service) actorQueueFor(workflowID string) string {
-	return fcp.ShardTaskQueue(s.actorTaskQueue, s.actorShards, workflowID)
+	return maestro.ShardTaskQueue(s.actorTaskQueue, s.actorShards, workflowID)
 }
 
 func (s *Service) EnsureDeploymentActor(ctx context.Context, identity domain.DeploymentIdentity, policy *domain.Policy) error {

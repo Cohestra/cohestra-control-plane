@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-const fieldManager = "fcp"
+const fieldManager = "maestro"
 
 // Config tunes the Kubernetes backend.
 type Config struct {
@@ -62,7 +62,7 @@ type Config struct {
 
 func (c *Config) withDefaults() {
 	if c.LeaseNamespace == "" {
-		c.LeaseNamespace = "fcp-system"
+		c.LeaseNamespace = "maestro-system"
 	}
 	if c.SlotBudget <= 0 {
 		c.SlotBudget = 4096
@@ -328,7 +328,7 @@ func (b *Backend) RecordAudit(ctx context.Context, event activities.AuditEvent) 
 	now := metav1.NewTime(event.At)
 	k8sEvent := &corev1.Event{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "fcp-",
+			GenerateName: "maestro-",
 			Namespace:    event.Identity.Namespace,
 		},
 		InvolvedObject: corev1.ObjectReference{
@@ -340,7 +340,7 @@ func (b *Backend) RecordAudit(ctx context.Context, event activities.AuditEvent) 
 		Reason:         event.Type,
 		Message:        event.Message,
 		Type:           corev1.EventTypeNormal,
-		Source:         corev1.EventSource{Component: "fcp"},
+		Source:         corev1.EventSource{Component: "maestro"},
 		FirstTimestamp: now,
 		LastTimestamp:  now,
 	}
