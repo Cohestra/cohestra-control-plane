@@ -1,6 +1,6 @@
-# Scaling FCP to ~10,000 Flink jobs
+# Scaling Maestro to ~10,000 Flink jobs
 
-FCP models every Flink deployment as a long-lived Temporal *actor workflow*
+Maestro models every Flink deployment as a long-lived Temporal *actor workflow*
 (`flink-deployment/<env>/<ns>/<name>`) plus a per-namespace cluster actor. Operating
 10,000 jobs therefore means ~10,000 continuously-open workflows whose commands are
 serialized per actor. This document describes the bottlenecks at that scale and the knobs

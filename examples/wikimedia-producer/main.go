@@ -1,7 +1,7 @@
 // Command wikimedia-producer streams the public Wikimedia EventStreams
 // "recentchange" Server-Sent-Events firehose and publishes each event to Kafka.
 // It needs no credentials, which makes it a convenient continuous source for
-// exercising the FCP sample Flink job end-to-end.
+// exercising the Maestro sample Flink job end-to-end.
 package main
 
 import (

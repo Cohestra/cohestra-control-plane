@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/flink-control-plane/fcp"
-	"github.com/flink-control-plane/fcp/domain"
-	"github.com/flink-control-plane/fcp/workflows"
+	"github.com/maestro-flink/maestro"
+	"github.com/maestro-flink/maestro/domain"
+	"github.com/maestro-flink/maestro/workflows"
 	"go.temporal.io/api/serviceerror"
 	workflowservice "go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"

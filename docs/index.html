@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCP — Flink Control Plane</title>
+<link rel="icon" type="image/png" href="/ui/favicon.png">
+<style>
+:root {
+  --bg: #0f1117;
+  --bg-surface: #1a1d27;
+  --bg-code: #12141c;
+  --border: #2a2d3a;
+  --text: #e4e4e7;
+  --text-muted: #9ca3af;
+  --accent: #f97316;
+  --accent-dim: rgba(249,115,22,0.15);
+  --blue: #60a5fa;
+  --green: #34d399;
+  --red: #f87171;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.7; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* nav */
+.topnav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(15,17,23,0.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: 0 2rem; height: 56px;
+}
+.topnav img { height: 32px; }
+.topnav .brand { font-weight: 700; font-size: 1.1rem; color: var(--accent); }
+.topnav a { color: var(--text-muted); font-size: 0.875rem; }
+.topnav a:hover { color: var(--text); text-decoration: none; }
+.topnav .spacer { flex: 1; }
+
+/* layout */
+.page { display: flex; max-width: 1280px; margin: 0 auto; }
+.sidebar {
+  width: 240px; min-height: calc(100vh - 56px);
+  border-right: 1px solid var(--border);
+  padding: 1.5rem 1rem; position: sticky; top: 56px;
+  align-self: flex-start; overflow-y: auto; max-height: calc(100vh - 56px);
+}
+.sidebar h4 { color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 1rem 0 0.5rem; }
+.sidebar a { display: block; color: var(--text-muted); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; }
+.sidebar a:hover, .sidebar a.active { color: var(--text); background: var(--accent-dim); text-decoration: none; }
+.content { flex: 1; padding: 2rem 3rem; min-width: 0; }
+
+/* sections */
+section { margin-bottom: 3rem; scroll-margin-top: 72px; }
+h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem; }
+h1 span { color: var(--accent); }
+h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 0.75rem; }
+p, li { color: var(--text-muted); }
+p { margin-bottom: 0.75rem; }
+ul { padding-left: 1.5rem; margin-bottom: 1rem; }
+li { margin-bottom: 0.25rem; }
+
+/* hero */
+.hero { text-align: center; padding: 4rem 2rem 3rem; }
+.hero .subtitle { font-size: 1.2rem; color: var(--text-muted); max-width: 640px; margin: 0.5rem auto 2rem; }
+.hero-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; max-width: 720px; margin: 0 auto; }
+.hero-card {
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1.25rem; text-align: left;
+}
+.hero-card h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--text); }
+.hero-card p { font-size: 0.85rem; margin: 0; }
+
+/* badges */
+.badge-row { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem; }
+.badge {
+  display: inline-block; padding: 0.3rem 0.75rem; border-radius: 999px;
+  font-size: 0.75rem; font-weight: 600;
+}
+.badge-orange { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(249,115,22,0.3); }
+.badge-blue { background: rgba(96,165,250,0.15); color: var(--blue); border: 1px solid rgba(96,165,250,0.3); }
+.badge-green { background: rgba(52,211,153,0.15); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+
+/* code */
+code { font-family: var(--mono); font-size: 0.85em; background: var(--bg-code); padding: 0.15em 0.4em; border-radius: 4px; }
+pre {
+  background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1rem 1.25rem; overflow-x: auto; margin-bottom: 1rem; position: relative;
+}
+pre code { background: none; padding: 0; font-size: 0.82rem; line-height: 1.6; }
+.code-label {
+  position: absolute; top: 0; right: 0;
+  background: var(--border); color: var(--text-muted);
+  font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 0 8px 0 4px;
+}
+
+/* table */
+table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.85rem; }
+th { text-align: left; color: var(--text-muted); font-weight: 600; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+td code { font-size: 0.8rem; }
+
+/* comparison */
+.comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1.5rem 0; }
+.comparison-col { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; }
+.comparison-col h3 { margin: 0 0 1rem; }
+.comparison-col.highlight { border-color: var(--accent); }
+.comparison-col.highlight h3 { color: var(--accent); }
+
+/* api ref */
+.endpoint {
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px;
+  margin-bottom: 0.75rem; overflow: hidden;
+}
+.endpoint-header {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.75rem 1rem; cursor: pointer;
+}
+.endpoint-header:hover { background: rgba(255,255,255,0.02); }
+.method {
+  display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px;
+  font-size: 0.7rem; font-weight: 700; font-family: var(--mono); min-width: 50px; text-align: center;
+}
+.method-get { background: rgba(52,211,153,0.15); color: var(--green); }
+.method-post { background: rgba(96,165,250,0.15); color: var(--blue); }
+.method-put { background: rgba(249,115,22,0.15); color: var(--accent); }
+.endpoint-path { font-family: var(--mono); font-size: 0.85rem; }
+.endpoint-desc { color: var(--text-muted); font-size: 0.8rem; margin-left: auto; }
+.endpoint-body { padding: 0 1rem 1rem; display: none; }
+.endpoint.open .endpoint-body { display: block; }
+
+/* architecture diagram */
+.arch-diagram {
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 2rem; text-align: center; margin: 1.5rem 0;
+}
+.arch-diagram svg { max-width: 100%; }
+
+/* responsive */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .content { padding: 1.5rem; }
+  .hero-grid { grid-template-columns: 1fr; }
+  .comparison { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <img src="/ui/logo-sm.png" alt="FCP">
+  <span class="brand">FCP</span>
+  <a href="#overview">Overview</a>
+  <a href="#comparison">vs MSF</a>
+  <a href="#quickstart">Quick Start</a>
+  <a href="#sdk">SDK</a>
+  <a href="#api">API</a>
+  <a href="#autoscaler">Autoscaler</a>
+  <a href="#architecture">Architecture</a>
+  <span class="spacer"></span>
+  <a href="/ui/">Console</a>
+  <a href="https://github.com/flink-control-plane/fcp">GitHub</a>
+</nav>
+
+<div class="page">
+<aside class="sidebar">
+  <h4>Getting Started</h4>
+  <a href="#overview">Overview</a>
+  <a href="#comparison">FCP vs AWS MSF</a>
+  <a href="#quickstart">Quick Start</a>
+  <a href="#install">Installation</a>
+
+  <h4>SDK</h4>
+  <a href="#sdk">Python SDK</a>
+  <a href="#sdk-deploy">Deploy</a>
+  <a href="#sdk-scale">Scale</a>
+  <a href="#sdk-ops">Operations</a>
+  <a href="#sdk-cluster">Cluster Ops</a>
+
+  <h4>Autoscaler</h4>
+  <a href="#autoscaler">Custom Autoscaler</a>
+  <a href="#lambda">Lambda Example</a>
+
+  <h4>Reference</h4>
+  <a href="#api">API Reference</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#safety">Safety Model</a>
+  <a href="#config">Configuration</a>
+</aside>
+
+<main class="content">
+
+<!-- HERO -->
+<section class="hero" id="overview">
+  <h1>Flink Control <span>Plane</span></h1>
+  <p class="subtitle">
+    Open-source deployment management for Apache Flink on Kubernetes.
+    Your cluster, your rules — no vendor lock-in.
+  </p>
+  <div class="badge-row">
+    <span class="badge badge-orange">Apache 2.0</span>
+    <span class="badge badge-blue">Any Kubernetes</span>
+    <span class="badge badge-green">Production Ready</span>
+  </div>
+  <div class="hero-grid">
+    <div class="hero-card">
+      <h3>Deploy &amp; Rollback</h3>
+      <p>Controlled rollouts with savepoint management, health gates, and automatic rollback on failure.</p>
+    </div>
+    <div class="hero-card">
+      <h3>Scale &amp; Autoscale</h3>
+      <p>Manual scaling, Flink Operator autoscaler, or plug in your own custom autoscaler via SDK.</p>
+    </div>
+    <div class="hero-card">
+      <h3>Observe &amp; Control</h3>
+      <p>Durable operation history, version tracking, cluster freeze, and a built-in operations console.</p>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section id="comparison">
+  <h2>FCP vs AWS Managed Service for Apache Flink</h2>
+  <div class="comparison">
+    <div class="comparison-col">
+      <h3>AWS MSF</h3>
+      <ul>
+        <li>Fully managed by AWS — no cluster access</li>
+        <li>Flink versions lag behind OSS releases</li>
+        <li>Locked to AWS, specific regions</li>
+        <li>Limited scaling options, no custom autoscaler</li>
+        <li>Opaque upgrade/rollback process</li>
+        <li>No durable operation history</li>
+        <li>Pricing per KPU — scales with cost at high volume</li>
+        <li>State management is a black box</li>
+      </ul>
+    </div>
+    <div class="comparison-col highlight">
+      <h3>FCP (Flink Control Plane)</h3>
+      <ul>
+        <li>Runs on any Kubernetes (EKS, GKE, AKS, on-prem)</li>
+        <li>Flink 2.x on day one — you control the version</li>
+        <li>Open source, Apache 2.0 — no lock-in</li>
+        <li>Custom autoscaler SDK + Flink Operator autoscaler</li>
+        <li>Transparent rollouts with savepoint gates</li>
+        <li>Full operation history via Temporal</li>
+        <li>Pay only for your Kubernetes nodes</li>
+        <li>You own your checkpoints, savepoints, and HA state</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Feature Comparison</h3>
+  <table>
+    <thead>
+      <tr><th>Feature</th><th>AWS MSF</th><th>FCP</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Kubernetes</td><td>Not applicable</td><td>Any (EKS, GKE, AKS, kind)</td></tr>
+      <tr><td>Flink Version</td><td>Managed (often behind)</td><td>Any (you control)</td></tr>
+      <tr><td>Deployment Model</td><td>AWS Console / CloudFormation</td><td>REST API / SDK / GitOps</td></tr>
+      <tr><td>Rollback</td><td>Manual redeploy</td><td>One-command with savepoint</td></tr>
+      <tr><td>Autoscaling</td><td>Basic (KPU)</td><td>Custom SDK + Operator</td></tr>
+      <tr><td>State Management</td><td>Opaque S3</td><td>You own checkpoint/savepoint storage</td></tr>
+      <tr><td>Operation History</td><td>CloudWatch logs</td><td>Durable Temporal workflows</td></tr>
+      <tr><td>Cluster Freeze</td><td>No</td><td>Yes — namespace-level mutation freeze</td></tr>
+      <tr><td>Multi-Cloud</td><td>AWS only</td><td>Any cloud or on-prem</td></tr>
+      <tr><td>Cost</td><td>Per-KPU pricing</td><td>Kubernetes node cost only</td></tr>
+      <tr><td>License</td><td>Proprietary</td><td>Apache 2.0</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- QUICK START -->
+<section id="quickstart">
+  <h2>Quick Start</h2>
+
+  <h3 id="install">1. Install on your Kubernetes cluster</h3>
+  <pre><code><span class="code-label">bash</span>helm repo add fcp https://flink-control-plane.github.io/charts
+helm install fcp fcp/fcp \
+  --namespace fcp-system --create-namespace \
+  --set temporal.enabled=true</code></pre>
+
+  <h3>2. Register a deployment</h3>
+  <pre><code><span class="code-label">bash</span>curl -X PUT https://fcp.yourcluster:8080/api/v1/deployments/prod/streaming/orders \
+  -H 'Content-Type: application/json' \
+  -d '{"owner":"platform","serviceAccount":"flink"}'</code></pre>
+
+  <h3>3. Deploy your Flink job</h3>
+  <pre><code><span class="code-label">bash</span>curl -X POST https://fcp.yourcluster:8080/api/v1/deployments/prod/streaming/orders/deploy \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: deploy-001' \
+  -d '{
+    "requester": "ci",
+    "approved": true,
+    "spec": {
+      "imageDigest": "your-registry/orders-job@sha256:...",
+      "flinkVersion": "2.2",
+      "parallelism": 8,
+      "maxParallelism": 128,
+      "resources": {
+        "taskManagerCpu": 2,
+        "taskManagerMemoryMiB": 4096,
+        "taskManagerCount": 2,
+        "slotsPerManager": 4
+      },
+      "stateCompatibility": {
+        "jobGraphCompatible": true,
+        "operatorUidsStable": true
+      }
+    }
+  }'</code></pre>
+
+  <h3>4. Or use the Python SDK</h3>
+  <pre><code><span class="code-label">bash</span>pip install fcp-sdk</code></pre>
+  <pre><code><span class="code-label">python</span>from fcp_sdk import FCPClient, DeploymentSpec, ResourceShape
+
+client = FCPClient("https://fcp.yourcluster:8080", token="...")
+orders = client.deployment("prod", "streaming", "orders")
+
+orders.deploy(
+    DeploymentSpec(
+        image_digest="your-registry/orders-job@sha256:...",
+        parallelism=8,
+        max_parallelism=128,
+        resources=ResourceShape(task_manager_cpu=2, task_manager_memory_mib=4096,
+                                task_manager_count=2, slots_per_manager=4),
+    ),
+    requester="ci-pipeline",
+    approved=True,
+)
+
+# Wait for healthy
+view = orders.wait_healthy(timeout=300)
+print(f"Version {view['currentVersion']['versionId']} is healthy")</code></pre>
+</section>
+
+<!-- SDK -->
+<section id="sdk">
+  <h2>Python SDK</h2>
+  <p>The <code>fcp-sdk</code> package provides a typed Python client for the FCP REST API.</p>
+
+  <pre><code><span class="code-label">bash</span>pip install fcp-sdk</code></pre>
+
+  <h3>Client</h3>
+  <pre><code><span class="code-label">python</span>from fcp_sdk import FCPClient
+
+client = FCPClient(
+    base_url="https://fcp.yourcluster:8080",
+    token="your-bearer-token",   # optional
+    timeout=30,
+)
+
+# List all deployments
+deployments = client.list_deployments(environment="prod")
+
+# Get dashboard summary
+cards = client.summary()</code></pre>
+
+  <h3 id="sdk-deploy">Deploy</h3>
+  <pre><code><span class="code-label">python</span>from fcp_sdk import DeploymentSpec, ResourceShape, StateCompatibility
+
+spec = DeploymentSpec(
+    image_digest="registry/job@sha256:abc123",
+    parallelism=8,
+    max_parallelism=128,
+    flink_version="2.2",
+    resources=ResourceShape(
+        task_manager_cpu=2,
+        task_manager_memory_mib=4096,
+        task_manager_count=2,
+        slots_per_manager=4,
+    ),
+    job_args={"source.topic": "orders", "sink.table": "enriched_orders"},
+    flink_config={"state.backend.type": "rocksdb"},
+    state_compatibility=StateCompatibility(
+        job_graph_compatible=True,
+        operator_uids_stable=True,
+    ),
+)
+
+orders = client.deployment("prod", "streaming", "orders")
+orders.deploy(spec, requester="ci", approved=True, reason="release v2.3.1")</code></pre>
+
+  <h3 id="sdk-scale">Scale</h3>
+  <pre><code><span class="code-label">python</span># Manual scale
+orders.scale(16, approved=True, reason="traffic spike")
+
+# Wait for the scale to complete
+orders.wait_healthy()</code></pre>
+
+  <h3 id="sdk-ops">Operations</h3>
+  <pre><code><span class="code-label">python</span># Savepoint
+orders.savepoint()
+
+# Suspend (takes savepoint, stops job)
+orders.suspend(reason="maintenance window")
+
+# Resume
+orders.resume()
+
+# Rollback to specific version
+orders.rollback(target_version=3, reason="regression in v4")
+
+# Rollback to last healthy (omit target_version)
+orders.rollback(reason="emergency")
+
+# Version history
+for v in orders.versions():
+    print(f"v{v['versionId']}: {v['spec']['imageDigest'][:40]}...")</code></pre>
+
+  <h3 id="sdk-cluster">Cluster Operations</h3>
+  <pre><code><span class="code-label">python</span># Freeze all mutations in a namespace during an incident
+client.freeze_cluster("prod", "streaming",
+    requester="incident-commander",
+    reason="active P0 incident — no deploys")
+
+# Unfreeze when resolved
+client.unfreeze_cluster("prod", "streaming",
+    requester="incident-commander",
+    reason="incident resolved")</code></pre>
+</section>
+
+<!-- AUTOSCALER -->
+<section id="autoscaler">
+  <h2>Custom Autoscaler</h2>
+  <p>
+    FCP provides an <code>AutoscalerBase</code> class for building custom autoscalers.
+    Subclass it, implement <code>evaluate()</code>, and deploy as a Lambda, CronJob, or long-running process.
+  </p>
+
+  <pre><code><span class="code-label">python</span>from fcp_sdk import FCPClient, AutoscalerBase, ScaleDecision
+
+class BackpressureAutoscaler(AutoscalerBase):
+    def evaluate(self, status: dict) -> ScaleDecision | None:
+        health = status["currentVersion"]["healthSummary"]
+        current_p = status["currentVersion"]["spec"]["parallelism"]
+
+        if health["backpressureRatio"] > 0.7 and current_p < 64:
+            return ScaleDecision(
+                target_parallelism=min(current_p * 2, 64),
+                reason=f"backpressure={health['backpressureRatio']:.0%}",
+            )
+
+        if health["backpressureRatio"] < 0.1 and current_p > 4:
+            return ScaleDecision(
+                target_parallelism=max(current_p // 2, 4),
+                reason="low utilization",
+            )
+
+        return None</code></pre>
+
+  <h3 id="lambda">AWS Lambda Deployment</h3>
+  <p>
+    The SDK includes a ready-made Kafka-lag autoscaler that runs as a Lambda
+    triggered by EventBridge on a schedule.
+  </p>
+  <pre><code><span class="code-label">yaml — SAM template</span>Resources:
+  AutoscalerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: kafka_lag_autoscaler.handler
+      Timeout: 30
+      Environment:
+        Variables:
+          FCP_URL: https://fcp.internal:8080
+          FCP_TOKEN: !Ref FCPToken
+          FCP_ENV: prod
+          FCP_NAMESPACE: streaming
+          FCP_NAME: orders
+          MIN_PARALLELISM: "2"
+          MAX_PARALLELISM: "64"
+          LAG_PER_SLOT: "50000"
+      Events:
+        Schedule:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)</code></pre>
+
+  <pre><code><span class="code-label">python — kafka_lag_autoscaler.py</span>import math, os
+from fcp_sdk import FCPClient, AutoscalerBase, ScaleDecision
+
+class KafkaLagAutoscaler(AutoscalerBase):
+    def evaluate(self, status):
+        lag = status["currentVersion"]["healthSummary"]["kafkaLag"]
+        current = status["currentVersion"]["spec"]["parallelism"]
+        lag_per_slot = int(os.environ.get("LAG_PER_SLOT", "50000"))
+        max_p = int(os.environ.get("MAX_PARALLELISM", "64"))
+
+        target = min(max(math.ceil(lag / lag_per_slot), 2), max_p)
+        if target != current:
+            return ScaleDecision(target, reason=f"lag={lag}")
+        return None
+
+def handler(event, context):
+    client = FCPClient(os.environ["FCP_URL"], token=os.environ.get("FCP_TOKEN"))
+    scaler = KafkaLagAutoscaler(
+        client, os.environ["FCP_ENV"],
+        os.environ["FCP_NAMESPACE"], os.environ["FCP_NAME"],
+    )
+    result = scaler.execute()
+    return {"scaled": result is not None}</code></pre>
+</section>
+
+<!-- API REFERENCE -->
+<section id="api">
+  <h2>API Reference</h2>
+  <p>All mutation endpoints require an <code>Idempotency-Key</code> header. Responses use standard HTTP status codes.</p>
+
+  <h3>Deployments</h3>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-get">GET</span>
+      <span class="endpoint-path">/api/v1/deployments</span>
+      <span class="endpoint-desc">List deployment actors</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Query parameters: <code>environment</code>, <code>namespace</code>, <code>limit</code> (1–500), <code>pageToken</code></p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-get">GET</span>
+      <span class="endpoint-path">/api/v1/deployments/summary</span>
+      <span class="endpoint-desc">Dashboard card summaries</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns an array of deployment card summaries for the operations console.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-put">PUT</span>
+      <span class="endpoint-path">/api/v1/deployments/{env}/{ns}/{name}</span>
+      <span class="endpoint-desc">Register deployment actor</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Body: <code>{"owner":"...","serviceAccount":"flink","nodePool":"default"}</code></p>
+      <p>Starts a durable deployment actor workflow. Idempotent — safe to call repeatedly.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-get">GET</span>
+      <span class="endpoint-path">/api/v1/deployments/{env}/{ns}/{name}/actor</span>
+      <span class="endpoint-desc">Query actor state</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns current version, health summary, active operation, recent operations, and autoscaler state.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-get">GET</span>
+      <span class="endpoint-path">/api/v1/deployments/{env}/{ns}/{name}/versions</span>
+      <span class="endpoint-desc">Version history</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns the full version history (up to 50 most recent).</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-post">POST</span>
+      <span class="endpoint-path">/api/v1/deployments/{env}/{ns}/{name}/deploy</span>
+      <span class="endpoint-desc">Submit controlled rollout</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Body: <code>{"requester":"...","approved":bool,"incident":bool,"reason":"...","spec":{...}}</code></p>
+      <p>Triggers a RolloutWorkflow: savepoint → apply → health gates → promote or rollback.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-post">POST</span>
+      <span class="endpoint-path">/api/v1/deployments/{env}/{ns}/{name}/scale</span>
+      <span class="endpoint-desc">Scale parallelism</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Body: <code>{"requester":"...","parallelism":16,"approved":bool,"reason":"..."}</code></p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-post">POST</span>
+      <span class="endpoint-path">/api/v1/deployments/{env}/{ns}/{name}/savepoint</span>
+      <span class="endpoint-desc">Request savepoint</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Body: <code>{"requester":"..."}</code></p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-post">POST</span>
+      <span class="endpoint-path">/api/v1/deployments/{env}/{ns}/{name}/suspend</span>
+      <span class="endpoint-desc">Suspend deployment</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Takes a savepoint and stops the job. Resume to restart.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-post">POST</span>
+      <span class="endpoint-path">/api/v1/deployments/{env}/{ns}/{name}/resume</span>
+      <span class="endpoint-desc">Resume deployment</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Restarts a suspended deployment and observes health.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-post">POST</span>
+      <span class="endpoint-path">/api/v1/deployments/{env}/{ns}/{name}/rollback</span>
+      <span class="endpoint-desc">Rollback to version</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Body: <code>{"requester":"...","targetVersion":3,"approved":true,"reason":"..."}</code></p>
+      <p>Omit <code>targetVersion</code> to roll back to the last healthy version.</p>
+    </div>
+  </div>
+
+  <h3>Cluster Operations</h3>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-get">GET</span>
+      <span class="endpoint-path">/api/v1/clusters/{env}/{ns}/actor</span>
+      <span class="endpoint-desc">Cluster actor state</span>
+    </div>
+    <div class="endpoint-body"><p>Returns freeze status and metadata for the namespace cluster actor.</p></div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-post">POST</span>
+      <span class="endpoint-path">/api/v1/clusters/{env}/{ns}/freeze</span>
+      <span class="endpoint-desc">Freeze namespace</span>
+    </div>
+    <div class="endpoint-body"><p>Blocks all runtime mutations. Savepoints remain allowed.</p></div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method method-post">POST</span>
+      <span class="endpoint-path">/api/v1/clusters/{env}/{ns}/unfreeze</span>
+      <span class="endpoint-desc">Unfreeze namespace</span>
+    </div>
+    <div class="endpoint-body"><p>Removes the freeze and allows mutations again.</p></div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <h2>Architecture</h2>
+
+  <div class="arch-diagram">
+    <svg viewBox="0 0 700 350" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#f97316"/>
+        </marker>
+      </defs>
+
+      <!-- boxes -->
+      <rect x="20" y="10" width="120" height="40" rx="6" fill="#1a1d27" stroke="#f97316" stroke-width="1.5"/>
+      <text x="80" y="35" text-anchor="middle" fill="#e4e4e7" font-size="12" font-family="system-ui">SDK / CLI / CI</text>
+
+      <rect x="20" y="90" width="120" height="40" rx="6" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1.5"/>
+      <text x="80" y="115" text-anchor="middle" fill="#e4e4e7" font-size="12" font-family="system-ui">FCP API Server</text>
+
+      <rect x="220" y="90" width="140" height="40" rx="6" fill="#1a1d27" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="290" y="115" text-anchor="middle" fill="#e4e4e7" font-size="11" font-family="system-ui">Temporal Server</text>
+
+      <rect x="220" y="170" width="140" height="40" rx="6" fill="#1a1d27" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="290" y="195" text-anchor="middle" fill="#e4e4e7" font-size="11" font-family="system-ui">DeploymentActor</text>
+
+      <rect x="430" y="140" width="120" height="36" rx="6" fill="#1a1d27" stroke="#34d399" stroke-width="1.5"/>
+      <text x="490" y="163" text-anchor="middle" fill="#e4e4e7" font-size="10" font-family="system-ui">RolloutWorkflow</text>
+
+      <rect x="430" y="200" width="120" height="36" rx="6" fill="#1a1d27" stroke="#34d399" stroke-width="1.5"/>
+      <text x="490" y="223" text-anchor="middle" fill="#e4e4e7" font-size="10" font-family="system-ui">SavepointWorkflow</text>
+
+      <rect x="430" y="270" width="120" height="36" rx="6" fill="#1a1d27" stroke="#9ca3af" stroke-width="1.5"/>
+      <text x="490" y="293" text-anchor="middle" fill="#e4e4e7" font-size="10" font-family="system-ui">Activities</text>
+
+      <rect x="600" y="230" width="90" height="110" rx="6" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1.5"/>
+      <text x="645" y="260" text-anchor="middle" fill="#9ca3af" font-size="9" font-family="system-ui">Kubernetes</text>
+      <text x="645" y="280" text-anchor="middle" fill="#e4e4e7" font-size="10" font-family="system-ui">Flink</text>
+      <text x="645" y="298" text-anchor="middle" fill="#e4e4e7" font-size="10" font-family="system-ui">Operator</text>
+      <text x="645" y="318" text-anchor="middle" fill="#e4e4e7" font-size="10" font-family="system-ui">+ Jobs</text>
+
+      <rect x="220" y="270" width="140" height="36" rx="6" fill="#1a1d27" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="290" y="293" text-anchor="middle" fill="#e4e4e7" font-size="11" font-family="system-ui">ClusterActor</text>
+
+      <!-- arrows -->
+      <line x1="80" y1="50" x2="80" y2="90" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="140" y1="110" x2="220" y2="110" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="290" y1="130" x2="290" y2="170" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="360" y1="185" x2="430" y2="165" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="360" y1="195" x2="430" y2="215" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="490" y1="176" x2="490" y2="200" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4"/>
+      <line x1="490" y1="236" x2="490" y2="270" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="550" y1="288" x2="600" y2="288" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="290" y1="210" x2="290" y2="270" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4"/>
+    </svg>
+  </div>
+
+  <p>
+    <strong>Temporal</strong> owns durable control-plane state. The <strong>Flink Kubernetes Operator</strong>
+    remains the runtime reconciler. <strong>Flink</strong> handles data-plane execution and state.
+    FCP orchestrates the lifecycle between them.
+  </p>
+
+  <h3>Workflow IDs</h3>
+  <table>
+    <thead><tr><th>Workflow</th><th>ID Pattern</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>ClusterActor</td><td><code>flink-cluster/{env}/{ns}</code></td><td>Namespace-level freeze/unfreeze</td></tr>
+      <tr><td>DeploymentActor</td><td><code>flink-deployment/{env}/{ns}/{name}</code></td><td>Long-running per-job actor</td></tr>
+      <tr><td>RolloutWorkflow</td><td><code>flink-rollout/{env}/{ns}/{name}/{opId}</code></td><td>Controlled deploy/scale/rollback</td></tr>
+      <tr><td>SavepointWorkflow</td><td><code>flink-savepoint/{env}/{ns}/{name}/{opId}</code></td><td>Trigger + observe savepoint</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- SAFETY -->
+<section id="safety">
+  <h2>Safety Model</h2>
+  <ul>
+    <li>Every deployment command requires an <code>Idempotency-Key</code> header — duplicates are safely ignored</li>
+    <li>Production operations classified as risky require explicit approval</li>
+    <li>Max-parallelism decreases are rejected after state exists unless a fresh start is approved</li>
+    <li>Job argument, operator UID, and job graph changes are treated conservatively</li>
+    <li>Stateful changes create a savepoint before applying</li>
+    <li>Resource-increasing changes acquire a time-bound capacity lease</li>
+    <li>Rollouts succeed only after runtime, checkpoint, restart, backpressure, lag, and sink health gates pass</li>
+    <li>Failed health gates automatically restore the previous healthy version</li>
+    <li>Savepoints remain allowed while a cluster is frozen; runtime mutations are blocked</li>
+  </ul>
+</section>
+
+<!-- CONFIG -->
+<section id="config">
+  <h2>Configuration</h2>
+  <table>
+    <thead><tr><th>Variable</th><th>Default</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>TEMPORAL_ADDRESS</code></td><td><code>localhost:7233</code></td><td>Temporal frontend</td></tr>
+      <tr><td><code>TEMPORAL_NAMESPACE</code></td><td><code>default</code></td><td>Temporal namespace</td></tr>
+      <tr><td><code>ACTOR_TASK_QUEUE</code></td><td><code>flink-control-actors</code></td><td>Actor and child workflows</td></tr>
+      <tr><td><code>ACTIVITY_TASK_QUEUE</code></td><td><code>flink-control-activities</code></td><td>External I/O activities</td></tr>
+      <tr><td><code>HTTP_ADDRESS</code></td><td><code>:8080</code></td><td>API listen address</td></tr>
+      <tr><td><code>SIMULATION_DELAY</code></td><td><code>100ms</code></td><td>Simulated external call latency</td></tr>
+      <tr><td><code>CONTINUE_AS_NEW_AFTER</code></td><td><code>500</code></td><td>Commands before actor compaction</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+</div>
+
+<script>
+// smooth scroll for sidebar links
+document.querySelectorAll('.sidebar a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior: 'smooth'});
+  });
+});
+
+// highlight active sidebar link on scroll
+const sections = document.querySelectorAll('section[id]');
+const links = document.querySelectorAll('.sidebar a[href^="#"]');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const active = document.querySelector(`.sidebar a[href="#${entry.target.id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, {rootMargin: '-20% 0px -80% 0px'});
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

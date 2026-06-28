@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flink-control-plane/fcp/internal/config"
+	"github.com/maestro-flink/maestro/internal/config"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )

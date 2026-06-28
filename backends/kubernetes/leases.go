@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/flink-control-plane/fcp/activities"
-	"github.com/flink-control-plane/fcp/domain"
+	"github.com/maestro-flink/maestro/activities"
+	"github.com/maestro-flink/maestro/domain"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

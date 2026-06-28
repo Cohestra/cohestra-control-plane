@@ -1,7 +1,7 @@
-// Package kubernetes implements the FCP activities.Backend contract against a
+// Package kubernetes implements the Maestro activities.Backend contract against a
 // real Apache Flink Kubernetes Operator (>= 1.15) by reconciling FlinkDeployment
 // and FlinkStateSnapshot custom resources. It is a separate Go module so that
-// the public FCP core library does not take a client-go dependency.
+// the public Maestro core library does not take a client-go dependency.
 package kubernetes
 
 import (
@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flink-control-plane/fcp/activities"
-	"github.com/flink-control-plane/fcp/domain"
+	"github.com/maestro-flink/maestro/activities"
+	"github.com/maestro-flink/maestro/domain"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +32,7 @@ const fieldManager = "fcp"
 // Config tunes the Kubernetes backend.
 type Config struct {
 	// LeaseNamespace is where capacity-lease ConfigMaps are stored. It should be
-	// a namespace the worker can write to (typically the FCP system namespace).
+	// a namespace the worker can write to (typically the Maestro system namespace).
 	LeaseNamespace string
 	// SlotBudget caps total reserved task slots per node pool.
 	SlotBudget int

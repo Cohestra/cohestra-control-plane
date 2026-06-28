@@ -1,4 +1,4 @@
-# FCP — Flink Actor Control Plane configuration
+# Maestro — Flink Actor Control Plane configuration
 # Copy to config.yaml (or config.local.yaml) and adjust values.
 # Environment variables override any value set here.
 

@@ -4,72 +4,71 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#09110f">
-  <title>FCP Operations Console</title>
+  <title>Maestro Operations Console</title>
+  <link rel="icon" type="image/png" href="/ui/favicon.png">
+  <link rel="icon" type="image/svg+xml" href="/ui/logo.svg">
+  <link rel="apple-touch-icon" href="/ui/favicon.png">
   <link rel="stylesheet" href="/ui/styles.css">
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <img src="/ui/logo.png" alt="FCP Logo" style="width: 36px; height: 36px; object-fit: contain;">
-        <div>
-          <strong>FCP</strong>
-          <small>Operations console</small>
-        </div>
+
+    <!-- Floating top bar -->
+    <header class="floating-bar">
+      <div class="deploy-switcher">
+        <button id="deploy-switcher-btn" aria-expanded="false" aria-controls="deploy-dropdown">
+          <img src="/ui/logo.svg" class="maestro-logo" width="22" height="22" alt="Maestro" aria-label="Maestro">
+          <span id="switcher-name">Select deployment</span>
+          <small id="switcher-env"></small>
+          <span class="chevron" aria-hidden="true">▾</span>
+        </button>
       </div>
 
-      <nav class="nav" aria-label="Primary navigation">
-        <button class="nav-item active" data-view="environments">
-          <span class="nav-icon" aria-hidden="true">⊞</span> Environments
+      <nav class="nav-pill" aria-label="Primary navigation">
+        <button class="nav-item active" data-view="environments" title="View Environments">
+          <span class="nav-icon" aria-hidden="true">⊞</span>
+          <span>Environments</span>
         </button>
-        <button class="nav-item" data-view="overview">
-          <span class="nav-icon" aria-hidden="true">◇</span> Actor
+        <button class="nav-item" data-view="overview" title="View Actor Details">
+          <span class="nav-icon" aria-hidden="true">◇</span>
+          <span>Actor</span>
         </button>
-        <button class="nav-item" data-view="deploy">
-          <span class="nav-icon" aria-hidden="true">↑</span> Deploy
+        <button class="nav-item" data-view="deploy" title="Deploy new version">
+          <span class="nav-icon" aria-hidden="true">↑</span>
+          <span>Deploy</span>
+        </button>
+        <span class="nav-divider" aria-hidden="true"></span>
+        <button class="nav-item" id="auto-refresh-btn" title="Toggle live refresh">
+          <span class="nav-icon" aria-hidden="true">⚡</span>
+          <span>Live</span>
+        </button>
+        <button class="nav-item" id="refresh-button" title="Refresh now">
+          <span class="nav-icon" aria-hidden="true">↻</span>
         </button>
       </nav>
 
-      <div class="sidebar-section">
-        <div class="section-label">
-          <span>Deployments</span>
-          <span id="target-count" class="section-count">0</span>
-          <button class="icon-button" id="add-target-button" title="Add deployment">+</button>
-        </div>
-        <label class="target-search" for="target-search">
-          <span class="sr-only">Filter deployments</span>
-          <input id="target-search" type="search" placeholder="Filter by name, env, namespace">
-        </label>
-        <div id="target-list" class="target-list"></div>
+      <div class="bar-right">
+        <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light mode">☀️</button>
+        <div class="avatar" title="Operator">OP</div>
+        <img src="/ui/logo.svg" class="maestro-logo" width="28" height="28" alt="Maestro Logo" style="margin-left: 4px;">
       </div>
+    </header>
 
-      <div class="sidebar-footer">
-        <a href="/healthz" target="_blank" rel="noreferrer">
-          <span class="connection-dot"></span>
-          <span>
-            API connected
-            <small>Same-origin control endpoint</small>
-          </span>
-        </a>
-        <a href="/auth/logout" class="logout-link">Sign out</a>
+    <!-- Deployment dropdown panel -->
+    <div class="deploy-dropdown" id="deploy-dropdown">
+      <label class="target-search" for="target-search">
+        <span class="sr-only">Filter deployments</span>
+        <input id="target-search" type="search" placeholder="Filter by name, env, namespace">
+      </label>
+      <div class="deploy-dropdown-meta">
+        <span id="target-count">0</span> deployments
       </div>
-    </aside>
+      <div id="target-list" class="target-list"></div>
+      <button class="button secondary deploy-dropdown-add" id="dropdown-add-btn">+ Add</button>
+    </div>
 
-    <main class="main">
-      <header class="topbar">
-        <div>
-          <div class="eyebrow" id="breadcrumb">All environments</div>
-          <h1 id="page-title">Environments</h1>
-        </div>
-        <div class="topbar-actions">
-          <span class="last-updated" id="last-updated">Not loaded</span>
-          <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light mode">☀️</button>
-          <button class="button secondary" id="auto-refresh-btn">Live</button>
-          <button class="button secondary" id="refresh-button">Refresh</button>
-          <button class="button primary" data-open-deploy>New rollout</button>
-        </div>
-      </header>
-
+    <!-- Canvas -->
+    <main class="canvas">
       <div id="flash" class="flash" role="status" aria-live="polite"></div>
 
       <!-- Environments home -->
@@ -81,7 +80,7 @@
 
       <!-- Actor detail (tabbed dashboard) -->
       <section class="view" id="overview-view">
-        <div class="identity-strip">
+        <div class="identity-strip compact">
           <div>
             <span class="status-badge neutral" id="actor-status">UNKNOWN</span>
             <h2 id="deployment-name">Select a deployment</h2>
@@ -93,12 +92,13 @@
             <button class="button secondary" data-command="savepoint">Savepoint</button>
             <button class="button secondary" data-command="suspend">Suspend</button>
             <button class="button secondary" data-command="resume">Resume</button>
+            <button class="button primary" data-open-deploy>New rollout</button>
             <button class="button danger" data-open-rollback>Rollback</button>
           </div>
         </div>
 
-        <!-- Health ledger bar -->
-        <div class="health-ledger" id="health-ledger">
+        <!-- Health status strip -->
+        <div class="status-strip" id="health-ledger">
           <div class="ledger-item"><span class="ledger-dot neutral"></span><span>Running</span><strong id="ledger-running">—</strong></div>
           <div class="ledger-item"><span class="ledger-dot neutral"></span><span>Checkpoint</span><strong id="ledger-checkpoint">—</strong></div>
           <div class="ledger-item"><span class="ledger-dot neutral"></span><span>Sink</span><strong id="ledger-sink">—</strong></div>
@@ -142,38 +142,23 @@
           </div>
 
           <div class="content-grid" style="margin-top:14px">
-            <article class="panel runtime-panel">
-              <div class="panel-header">
-                <div>
-                  <span class="panel-kicker">Runtime</span>
-                  <h3>Health gates</h3>
-                </div>
-                <span class="status-badge neutral" id="runtime-badge">NO DATA</span>
-              </div>
-              <div class="health-grid" id="health-grid">
-                <div class="health-item"><span>Running</span><strong>—</strong></div>
-                <div class="health-item"><span>Checkpoint</span><strong>—</strong></div>
-                <div class="health-item"><span>Sink</span><strong>—</strong></div>
-                <div class="health-item"><span>Restarts</span><strong>—</strong></div>
-                <div class="health-item"><span>Backpressure</span><strong>—</strong></div>
-                <div class="health-item"><span>Kafka lag</span><strong>—</strong></div>
-              </div>
-            </article>
-
             <article class="panel span-2 cluster-panel">
               <div class="panel-header">
                 <div>
-                  <span class="panel-kicker">Namespace guardrail</span>
-                  <h3>Cluster freeze</h3>
+                  <span class="panel-kicker">Environment Protection</span>
+                  <h3 style="display: flex; align-items: center; gap: 6px;">
+                    Namespace Guardrail
+                    <span class="info-tooltip" data-tooltip="Freezing the namespace prevents deployments, rollbacks, or state mutations here. Use this during an incident to stop accidental changes.">ⓘ</span>
+                  </h3>
                 </div>
                 <span class="status-badge neutral" id="cluster-status">UNKNOWN</span>
               </div>
               <p class="panel-copy" id="cluster-detail">
                 Load a target to inspect namespace mutation controls.
               </p>
-              <div class="button-row">
-                <button class="button danger" id="freeze-button">Freeze</button>
-                <button class="button secondary" id="unfreeze-button">Unfreeze</button>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="button danger" id="freeze-button">Lock (Freeze)</button>
+                <button class="button secondary" id="unfreeze-button">Unlock (Unfreeze)</button>
               </div>
             </article>
 
@@ -362,7 +347,25 @@
       </section>
 
     </main>
+
+    <!-- Bottom bar -->
+    <footer class="bottom-bar">
+      <span class="last-updated" id="last-updated">Not loaded</span>
+      <a href="/healthz" target="_blank" rel="noreferrer">
+        <span class="connection-dot"></span> API connected
+      </a>
+      <a href="/auth/logout" class="logout-link">Sign out</a>
+    </footer>
+
   </div>
+
+  <!-- Command palette -->
+  <dialog id="cmd-palette">
+    <div class="cmd-palette-inner">
+      <input type="text" id="cmd-search" placeholder="Type a command..." autofocus>
+      <div id="cmd-results" class="cmd-results"></div>
+    </div>
+  </dialog>
 
   <!-- Register / edit target dialog -->
   <dialog id="target-dialog">

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flink-control-plane/fcp/domain"
+	"github.com/maestro-flink/maestro/domain"
 )
 
 type fakeControl struct {
@@ -94,7 +94,7 @@ func TestServesOperationsConsole(t *testing.T) {
 	if contentType := response.Header().Get("Content-Type"); !strings.Contains(contentType, "text/html") {
 		t.Fatalf("expected HTML content type, got %q", contentType)
 	}
-	if !strings.Contains(response.Body.String(), "FCP Operations Console") {
+	if !strings.Contains(response.Body.String(), "Maestro Operations Console") {
 		t.Fatal("expected operations console HTML")
 	}
 }

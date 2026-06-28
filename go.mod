@@ -1,4 +1,4 @@
-module github.com/flink-control-plane/fcp
+module github.com/maestro-flink/maestro
 
 go 1.25.0
 

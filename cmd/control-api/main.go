@@ -11,10 +11,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/flink-control-plane/fcp/control"
-	"github.com/flink-control-plane/fcp/internal/api"
-	"github.com/flink-control-plane/fcp/internal/auth"
-	"github.com/flink-control-plane/fcp/internal/config"
+	"github.com/maestro-flink/maestro/control"
+	"github.com/maestro-flink/maestro/internal/api"
+	"github.com/maestro-flink/maestro/internal/auth"
+	"github.com/maestro-flink/maestro/internal/config"
 	"go.temporal.io/sdk/client"
 )
 

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flink-control-plane/fcp/domain"
-	"github.com/flink-control-plane/fcp/internal/auth"
+	"github.com/maestro-flink/maestro/domain"
+	"github.com/maestro-flink/maestro/internal/auth"
 )
 
 type ControlService interface {
@@ -43,6 +43,9 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	registerUI(s.mux)
+	s.mux.HandleFunc("GET /swagger", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/docs", http.StatusMovedPermanently)
+	})
 	s.mux.HandleFunc("GET /login", func(w http.ResponseWriter, r *http.Request) {
 		contents, err := uiFiles.ReadFile("web/login.html")
 		if err != nil {
@@ -248,6 +251,7 @@ type rollbackRequest struct {
 	Requester     string `json:"requester"`
 	TargetVersion int64  `json:"targetVersion"`
 	Reason        string `json:"reason"`
+	Approved      bool   `json:"approved"`
 }
 
 func (s *Server) rollback(w http.ResponseWriter, r *http.Request) {
@@ -262,7 +266,7 @@ func (s *Server) rollback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	command.TargetVersion = request.TargetVersion
-	command.Approved = true
+	command.Approved = request.Approved
 	command.Reason = request.Reason
 	s.send(w, r, command)
 }

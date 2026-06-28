@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/flink-control-plane/fcp/activities"
-	"github.com/flink-control-plane/fcp/domain"
+	"github.com/maestro-flink/maestro/activities"
+	"github.com/maestro-flink/maestro/domain"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -49,12 +49,14 @@ func flinkVersionEnum(version string) string {
 }
 
 // upgradeMode selects the operator upgrade strategy for an apply.
-//   - no previous version              -> stateless (fresh start)
-//   - incident direct-patch            -> last-state (fastest, claims local state)
-//   - normal stateful redeploy         -> savepoint (take a savepoint, restore from it)
+//   - no previous version / fresh start approved -> stateless
+//   - incident direct-patch                      -> last-state (fastest, claims HA state)
+//   - normal stateful redeploy                   -> savepoint (cancel-with-savepoint, restore)
 func upgradeMode(input activities.ApplyDeploymentInput) string {
 	switch {
 	case input.Previous == nil:
+		return "stateless"
+	case input.Version.Spec.State.FreshStartApproved:
 		return "stateless"
 	case input.Incident && !input.GitOpsOnly:
 		return "last-state"
@@ -94,6 +96,9 @@ func buildFlinkDeployment(input activities.ApplyDeploymentInput, defaults map[st
 	}
 	if entry := spec.JobArgs[argEntryClass]; entry != "" {
 		job["entryClass"] = entry
+	}
+	if spec.State.AllowNonRestored {
+		job["allowNonRestoredState"] = true
 	}
 	if args := programArgs(spec.JobArgs); len(args) > 0 {
 		job["args"] = args

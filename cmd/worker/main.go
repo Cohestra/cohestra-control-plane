@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/flink-control-plane/fcp"
-	"github.com/flink-control-plane/fcp/activities"
-	"github.com/flink-control-plane/fcp/internal/config"
+	"github.com/maestro-flink/maestro"
+	"github.com/maestro-flink/maestro/activities"
+	"github.com/maestro-flink/maestro/internal/config"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )

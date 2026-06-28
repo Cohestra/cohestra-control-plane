@@ -1,4 +1,4 @@
-// Command worker runs FCP Temporal workers backed by the real Kubernetes/Flink
+// Command worker runs Maestro Temporal workers backed by the real Kubernetes/Flink
 // Operator adapter. It is the production-shaped counterpart to the simulated
 // ./cmd/worker in the core module.
 package main
@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/flink-control-plane/fcp"
-	k8sbackend "github.com/flink-control-plane/fcp/backends/kubernetes"
+	"github.com/maestro-flink/maestro"
+	k8sbackend "github.com/maestro-flink/maestro/backends/kubernetes"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"k8s.io/client-go/rest"
@@ -82,7 +82,7 @@ func main() {
 	primary := worker.New(temporalClient, actorQueues[0], workerOptions)
 	fcp.RegisterWorkflows(primary)
 
-	slog.Info("kubernetes-backed FCP workers started",
+	slog.Info("kubernetes-backed Maestro workers started",
 		"actorTaskQueues", actorQueues,
 		"activityTaskQueue", env("ACTIVITY_TASK_QUEUE", "flink-control-activities"),
 	)

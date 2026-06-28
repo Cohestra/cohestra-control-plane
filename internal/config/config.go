@@ -71,7 +71,7 @@ func defaults() Config {
 }
 
 func loadFile(cfg *Config) {
-	path := os.Getenv("FCP_CONFIG")
+	path := os.Getenv("MAESTRO_CONFIG")
 	if path == "" {
 		path = "config.yaml"
 	}

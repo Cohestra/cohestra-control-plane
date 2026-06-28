@@ -1,10 +1,10 @@
 // Theme: light default, persist to localStorage
 (function initTheme() {
-  const saved = localStorage.getItem("fcp.theme");
+  const saved = localStorage.getItem("maestro.theme");
   if (saved === "dark") document.documentElement.setAttribute("data-theme", "dark");
 })();
 
-const storageKey = "fcp.console.targets.v1";
+const storageKey = "maestro.console.targets.v1";
 
 const state = {
   targets: loadTargets(),
@@ -20,7 +20,6 @@ const elements = {
   targetList: document.querySelector("#target-list"),
   targetCount: document.querySelector("#target-count"),
   targetSearch: document.querySelector("#target-search"),
-  breadcrumb: document.querySelector("#breadcrumb"),
   deploymentName: document.querySelector("#deployment-name"),
   workflowID: document.querySelector("#workflow-id"),
   flinkDashboardLink: document.querySelector("#flink-dashboard-link"),
@@ -34,7 +33,24 @@ const elements = {
   versionsTable: document.querySelector("#versions-table"),
   targetDialog: document.querySelector("#target-dialog"),
   actionDialog: document.querySelector("#action-dialog"),
+  deploySwitcherBtn: document.querySelector("#deploy-switcher-btn"),
+  deployDropdown: document.querySelector("#deploy-dropdown"),
+  cmdPalette: document.querySelector("#cmd-palette"),
+  cmdSearch: document.querySelector("#cmd-search"),
+  cmdResults: document.querySelector("#cmd-results"),
 };
+
+// Deployment dropdown toggle
+document.querySelector("#deploy-switcher-btn")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  document.querySelector("#deploy-dropdown").classList.toggle("open");
+});
+document.addEventListener("click", (e) => {
+  const dropdown = document.querySelector("#deploy-dropdown");
+  if (dropdown && !dropdown.contains(e.target) && !e.target.closest("#deploy-switcher-btn")) {
+    dropdown.classList.remove("open");
+  }
+});
 
 let autoRefreshTimer = null;
 function setAutoRefresh(on) {
@@ -204,16 +220,25 @@ function renderTargets() {
     <div class="target-row">
       <button class="target ${state.activeTarget && targetKey(target) === targetKey(state.activeTarget) ? "active" : ""}"
         data-target="${targetKey(target)}">
-        <strong>${escapeHTML(target.name)}</strong>
-        <small>${escapeHTML(target.environment)} / ${escapeHTML(target.namespace)}</small>
-        <div class="target-meta">
-          <span>${target.owner ? escapeHTML(target.owner) : "Inventory"}</span>
-          <time>${target.startedAt ? escapeHTML(formatDate(target.startedAt)) : "Local only"}</time>
+        <img src="/ui/logo-sm.png" class="maestro-logo" width="24" height="24" alt="" style="flex-shrink:0;border-radius:6px;">
+        <div class="target-details">
+          <strong>${escapeHTML(target.name)}</strong>
+          <small>${escapeHTML(target.environment)} / ${escapeHTML(target.namespace)}</small>
+          <div class="target-meta">
+            <span>${target.owner ? escapeHTML(target.owner) : "Inventory"}</span>
+            <time>${target.startedAt ? escapeHTML(formatDate(target.startedAt)) : "Local only"}</time>
+          </div>
         </div>
       </button>
-      <button class="target-remove" data-remove="${escapeHTML(targetKey(target))}" aria-label="Remove ${escapeHTML(target.name)}">×</button>
     </div>
   `).join("");
+
+  // Update switcher pill text
+  const switcherName = document.querySelector("#switcher-name");
+  const switcherEnv = document.querySelector("#switcher-env");
+  if (switcherName) switcherName.textContent = state.activeTarget?.name || "Select deployment";
+  if (switcherEnv) switcherEnv.textContent = state.activeTarget ? `${state.activeTarget.environment}` : "";
+
   renderEnvironments();
 }
 
@@ -308,7 +333,6 @@ function renderActor() {
   const actor = state.actor;
   const target = state.activeTarget;
   const dashboardURL = dashboardURLFor(target, actor);
-  elements.breadcrumb.textContent = target ? `${target.environment} / ${target.namespace}` : "Environment / namespace";
   elements.deploymentName.textContent = target?.name || "Select a deployment";
   elements.workflowID.textContent = target
     ? `flink-deployment/${target.environment}/${target.namespace}/${target.name}`
@@ -366,13 +390,16 @@ function renderHealth(health) {
     ["Running", "—"], ["Checkpoint", "—"], ["Sink", "—"],
     ["Restarts", "—"], ["Backpressure", "—"], ["Kafka lag", "—"],
   ];
-  elements.healthGrid.innerHTML = values.map(([label, value, good]) => `
-    <div class="health-item">
-      <span>${label}</span>
-      <strong class="${good === undefined ? "" : good ? "good" : "bad"}">${value}</strong>
-    </div>
-  `).join("");
-  setBadge(document.querySelector("#runtime-badge"), health ? (health.healthy ? "HEALTHY" : "DEGRADED") : "NO DATA");
+  if (elements.healthGrid) {
+    elements.healthGrid.innerHTML = values.map(([label, value, good]) => `
+      <div class="health-item">
+        <span>${label}</span>
+        <strong class="${good === undefined ? "" : good ? "good" : "bad"}">${value}</strong>
+      </div>
+    `).join("");
+  }
+  const runtimeBadge = document.querySelector("#runtime-badge");
+  if (runtimeBadge) setBadge(runtimeBadge, health ? (health.healthy ? "HEALTHY" : "DEGRADED") : "NO DATA");
 }
 
 function renderOperations(operations) {
@@ -548,6 +575,7 @@ function activateTarget(target) {
   state.actor = null;
   state.cluster = null;
   state.versions = [];
+  document.querySelector("#deploy-dropdown")?.classList.remove("open");
   renderTargets();
   renderActor();
   renderCluster();
@@ -558,13 +586,7 @@ function activateTarget(target) {
 function switchView(name) {
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === `${name}-view`));
   document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === name));
-  document.querySelector("#page-title").textContent = {
-    environments: "Environments",
-    overview: "Deployment overview",
-    deploy: "Controlled rollout",
-  }[name] || name;
   if (name === "environments") {
-    document.querySelector("#breadcrumb").textContent = "All environments";
     loadCards();
   }
 }
@@ -707,7 +729,7 @@ async function fetchYAML(url) {
   return {
     name: get(/^\s{2,4}name:\s+(.+)$/m),
     namespace: get(/^\s{2,4}namespace:\s+(.+)$/m),
-    environment: get(/(?:fcp\.flink\/environment|flink\.io\/environment|environment):\s+(.+)/),
+    environment: get(/(?:maestro\.flink\/environment|flink\.io\/environment|environment):\s+(.+)/),
     serviceAccount: get(/serviceAccountName?:\s+(.+)/),
   };
 }
@@ -758,21 +780,6 @@ document.addEventListener("click", (event) => {
   const versionRollback = event.target.closest("[data-rollback-version]");
   if (versionRollback) openAction("rollback", { targetVersion: versionRollback.dataset.rollbackVersion });
 
-  const removeButton = event.target.closest("[data-remove]");
-  if (removeButton) {
-    const key = removeButton.dataset.remove;
-    state.targets = state.targets.filter((t) => targetKey(t) !== key);
-    if (state.activeTarget && targetKey(state.activeTarget) === key) {
-      state.activeTarget = null;
-      state.actor = null;
-      state.cluster = null;
-      renderActor();
-      renderCluster();
-    }
-    saveTargets();
-    renderTargets();
-  }
-
   if (event.target.closest("[data-open-deploy]")) {
     const form = document.querySelector("#deploy-form");
     form.elements.idempotencyKey.value = generatedKey("deploy");
@@ -819,7 +826,10 @@ if (document.documentElement.getAttribute("data-theme") === "dark") {
   document.querySelector("#theme-toggle").textContent = "🌙";
 }
 
-document.querySelector("#add-target-button").addEventListener("click", () => elements.targetDialog.showModal());
+document.querySelector("#dropdown-add-btn")?.addEventListener("click", () => {
+  elements.targetDialog.showModal();
+  document.querySelector("#deploy-dropdown")?.classList.remove("open");
+});
 document.querySelector("#auto-refresh-btn").addEventListener("click", () => setAutoRefresh(!autoRefreshTimer));
 document.querySelector("#refresh-button").addEventListener("click", () => {
   loadActiveTarget();
@@ -895,12 +905,129 @@ document.querySelector("#deploy-form").addEventListener("submit", (event) => {
   submitDeployment(event.currentTarget);
 });
 
+// --- command palette ---
+
+const commands = [
+  { id: "scale", label: "Scale deployment", shortcut: "" },
+  { id: "savepoint", label: "Create savepoint", shortcut: "" },
+  { id: "suspend", label: "Suspend deployment", shortcut: "" },
+  { id: "resume", label: "Resume deployment", shortcut: "" },
+  { id: "rollback", label: "Rollback deployment", shortcut: "" },
+  { id: "freeze", label: "Freeze namespace", shortcut: "" },
+  { id: "unfreeze", label: "Unfreeze namespace", shortcut: "" },
+  { id: "autoscaler-enable", label: "Enable autoscaler", shortcut: "" },
+  { id: "autoscaler-freeze", label: "Freeze autoscaler", shortcut: "" },
+  { id: "continue-as-new", label: "Compact history", shortcut: "" },
+  { id: "nav-environments", label: "Go to Environments", shortcut: "" },
+  { id: "nav-overview", label: "Go to Actor overview", shortcut: "" },
+  { id: "nav-deploy", label: "Go to Deploy form", shortcut: "" },
+  { id: "toggle-theme", label: "Toggle dark/light mode", shortcut: "" },
+  { id: "refresh", label: "Refresh data", shortcut: "" },
+  { id: "add-deployment", label: "Register new deployment", shortcut: "" },
+];
+
+function openCmdPalette() {
+  const dialog = document.querySelector("#cmd-palette");
+  if (!dialog) return;
+  dialog.showModal();
+  const search = document.querySelector("#cmd-search");
+  search.value = "";
+  search.focus();
+  renderCmdResults("");
+}
+
+function renderCmdResults(filter) {
+  const results = document.querySelector("#cmd-results");
+  const filtered = commands.filter(c =>
+    c.label.toLowerCase().includes(filter.toLowerCase())
+  );
+  results.innerHTML = filtered.map((cmd, i) => `
+    <div class="cmd-result${i === 0 ? " active" : ""}" data-cmd="${cmd.id}">
+      <span class="cmd-label">${cmd.label}</span>
+      ${cmd.shortcut ? `<span class="cmd-shortcut">${cmd.shortcut}</span>` : ""}
+    </div>
+  `).join("");
+}
+
+function executeCmdPaletteAction(id) {
+  const dialog = document.querySelector("#cmd-palette");
+  dialog?.close();
+
+  if (id.startsWith("nav-")) {
+    switchView(id.replace("nav-", ""));
+    return;
+  }
+  if (id === "toggle-theme") {
+    document.querySelector("#theme-toggle")?.click();
+    return;
+  }
+  if (id === "refresh") {
+    loadActiveTarget();
+    return;
+  }
+  if (id === "add-deployment") {
+    document.querySelector("#target-dialog")?.showModal();
+    return;
+  }
+  // All other commands open the action dialog
+  openAction(id);
+}
+
+// Command palette event listeners
+document.querySelector("#cmd-palette-btn")?.addEventListener("click", openCmdPalette);
+
+document.querySelector("#cmd-search")?.addEventListener("input", (e) => {
+  renderCmdResults(e.target.value);
+});
+
+document.querySelector("#cmd-results")?.addEventListener("click", (e) => {
+  const result = e.target.closest("[data-cmd]");
+  if (result) executeCmdPaletteAction(result.dataset.cmd);
+});
+
+// Keyboard navigation in command palette
+document.querySelector("#cmd-search")?.addEventListener("keydown", (e) => {
+  const results = document.querySelectorAll(".cmd-result");
+  const active = document.querySelector(".cmd-result.active");
+  const activeIndex = [...results].indexOf(active);
+
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    results[activeIndex]?.classList.remove("active");
+    results[Math.min(activeIndex + 1, results.length - 1)]?.classList.add("active");
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    results[activeIndex]?.classList.remove("active");
+    results[Math.max(activeIndex - 1, 0)]?.classList.add("active");
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    const sel = document.querySelector(".cmd-result.active");
+    if (sel) executeCmdPaletteAction(sel.dataset.cmd);
+  }
+});
+
+// Global Cmd+K / Ctrl+K shortcut
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+    e.preventDefault();
+    openCmdPalette();
+  }
+  if (e.key === "Escape") {
+    document.querySelector("#deploy-dropdown")?.classList.remove("open");
+  }
+});
+
+// Close cmd palette on backdrop click
+document.querySelector("#cmd-palette")?.addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.close();
+});
+
+// --- init ---
+
 renderTargets();
 renderActor();
 renderCluster();
 renderVersions();
 document.querySelector('[name="idempotencyKey"]').value = generatedKey("deploy");
-// default view is environments — set breadcrumb after renderActor() overwrites it
-elements.breadcrumb.textContent = "All environments";
 loadDeploymentInventory();
 loadCards();

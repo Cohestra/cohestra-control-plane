@@ -1,0 +1,10 @@
+io/fcp/sdk/DeploymentSpec$Builder.class
+io/fcp/sdk/DeploymentSpec.class
+io/fcp/sdk/ResourceShape.class
+io/fcp/sdk/AutoscalerBase.class
+io/fcp/sdk/Json.class
+io/fcp/sdk/Deployment.class
+io/fcp/sdk/StateCompatibility.class
+io/fcp/sdk/FCPClient.class
+io/fcp/sdk/FCPException.class
+io/fcp/sdk/FCPResponse.class
