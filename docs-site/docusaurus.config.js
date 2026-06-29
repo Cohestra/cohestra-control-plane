@@ -38,7 +38,7 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      image: 'img/cohestra-social-card.png',
+      image: 'img/logo.png',
       colorMode: {
         defaultMode: 'light',
         respectPrefersColorScheme: true,
