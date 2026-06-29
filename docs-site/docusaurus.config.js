@@ -2,7 +2,7 @@ import { themes as prismThemes } from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Cohestra — Control Plane',
+  title: 'Cohestra',
   tagline: 'Open-source deployment management for Apache Flink on any Kubernetes cluster',
   favicon: 'img/favicon.png',
 
