@@ -7,6 +7,13 @@ sidebar_position: 7
 DataFlow is **open core**: the platform is Apache-2.0 and free to self-host;
 a set of advanced features is commercial, unlocked per tenant.
 
+Commercial feature code lives in the repository's `apps/workflow-go/ee/`
+directory, source-available under the
+[Elastic License 2.0](https://github.com/Cohestra/cohestra-dataflow/blob/main/apps/workflow-go/ee/LICENSE).
+Community builds (`go build ./...`) exclude it entirely and are pure
+Apache-2.0; enterprise builds (`go build -tags ee ./...`, the default for
+released images) link it in.
+
 ## Free
 
 - Visual builder, Mermaid round-trip editing, and the local-LLM AI builder
