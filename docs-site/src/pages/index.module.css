@@ -21,3 +21,35 @@
   align-items: center;
   justify-content: center;
 }
+
+.products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  padding: 3rem 1rem;
+  max-width: 1100px;
+}
+
+.productCard {
+  display: flex;
+  flex-direction: column;
+}
+
+.productCard .card__body {
+  flex: 1;
+}
+
+.productBadge {
+  margin-top: 0.5rem;
+}
+
+.tierLine {
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.cardButtons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}

@@ -29,9 +29,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/as791/Cohestra.git</connection>
-        <developerConnection>scm:git:ssh://github.com/as791/Cohestra.git</developerConnection>
-        <url>https://github.com/as791/Cohestra/tree/main/sdk/java</url>
+        <connection>scm:git:git://github.com/Cohestra/cohestra-control-plane.git</connection>
+        <developerConnection>scm:git:ssh://github.com/Cohestra/cohestra-control-plane.git</developerConnection>
+        <url>https://github.com/Cohestra/cohestra-control-plane/tree/main/sdk/java</url>
     </scm>
 
     <properties>

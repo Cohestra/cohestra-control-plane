@@ -3,7 +3,7 @@ import { themes as prismThemes } from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Cohestra',
-  tagline: 'Open-source deployment management for Apache Flink on any Kubernetes cluster',
+  tagline: 'Open-source data infrastructure — durable pipelines and stream processing on any Kubernetes cluster',
   favicon: 'img/favicon.png',
 
   future: { v4: true },
@@ -11,8 +11,8 @@ const config = {
   url: 'https://cohestra.dev',
   baseUrl: '/',
 
-  organizationName: 'as791',
-  projectName: 'Cohestra',
+  organizationName: 'Cohestra',
+  projectName: 'cohestra-control-plane',
 
   onBrokenLinks: 'throw',
 
@@ -25,7 +25,7 @@ const config = {
       ({
         docs: {
           sidebarPath: './sidebars.js',
-          editUrl: 'https://github.com/as791/Cohestra/tree/main/docs-site/',
+          editUrl: 'https://github.com/Cohestra/cohestra-control-plane/tree/main/docs-site/',
         },
         blog: false,
         theme: {
@@ -58,7 +58,7 @@ const config = {
           { to: '/docs/sdk/java', label: 'Java SDK', position: 'left' },
           { to: '/docs/api-reference', label: 'API', position: 'left' },
           {
-            href: 'https://github.com/as791/Cohestra',
+            href: 'https://github.com/Cohestra/cohestra-control-plane',
             label: 'GitHub',
             position: 'right',
           },
@@ -90,10 +90,17 @@ const config = {
             ],
           },
           {
+            title: 'Products',
+            items: [
+              { label: 'Control Plane', href: 'https://github.com/Cohestra/cohestra-control-plane' },
+              { label: 'DataFlow', href: 'https://github.com/Cohestra/cohestra-dataflow' },
+            ],
+          },
+          {
             title: 'Community',
             items: [
-              { label: 'GitHub', href: 'https://github.com/as791/Cohestra' },
-              { label: 'Contributing', href: 'https://github.com/as791/Cohestra/blob/main/CONTRIBUTING.md' },
+              { label: 'GitHub', href: 'https://github.com/Cohestra' },
+              { label: 'Contributing', href: 'https://github.com/Cohestra/cohestra-control-plane/blob/main/CONTRIBUTING.md' },
             ],
           },
         ],
