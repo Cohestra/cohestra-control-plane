@@ -23,7 +23,7 @@ jobs:
             dockerfile: backends/kubernetes/Dockerfile
             build-args: ""
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
