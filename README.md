@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="internal/api/web/logo.png" width="140" height="140" alt="Cohestra Logo">
-  <h1>Cohestra</h1>
+  <img src="internal/api/web/logo.svg" width="140" height="140" alt="Cohestra Control Plane icon">
+  <h1>Cohestra Control Plane</h1>
   <p><strong>Open-source control plane for Apache Flink on Kubernetes</strong></p>
 
   <p>
@@ -19,7 +19,7 @@
 
 ---
 
-Cohestra is an **Apache 2.0-licensed** Go library and reference control plane for operating stateful Apache Flink deployments with [Temporal](https://temporal.io). It uses the **actor model** — the same pattern [Netflix uses to orchestrate 12,000+ Flink clusters](https://temporal.io/resources/on-demand/actor-workflows-reliably-orchestrating-thousands-of-flink-clusters-at).
+Cohestra Control Plane is an **Apache 2.0-licensed** Go library and reference control plane for operating stateful Apache Flink deployments with [Temporal](https://temporal.io). It uses the **actor model** — the same pattern [Netflix uses to orchestrate 12,000+ Flink clusters](https://temporal.io/resources/on-demand/actor-workflows-reliably-orchestrating-thousands-of-flink-clusters-at).
 
 Deploy it with a single `helm install` on your EKS cluster. Build custom autoscalers with the SDK. No vendor lock-in, no per-KPU pricing, no paid services.
 
