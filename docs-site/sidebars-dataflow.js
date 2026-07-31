@@ -2,12 +2,9 @@
 const sidebars = {
   dataflowSidebar: [
     'index',
-    'getting-started',
-    'building-pipelines',
-    'connectors',
     'architecture',
-    'deployment',
-    'editions',
+    'self-hosting',
+    'connectors',
   ],
 };
 
